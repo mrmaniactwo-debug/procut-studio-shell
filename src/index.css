@@ -9,43 +9,43 @@ All colors MUST be HSL.
 @layer base {
   :root {
     /* ProCut Studio Theme - Adobe Premiere Inspired */
-    --bg-main: 210 11% 12%;           /* #1E1E1E */
-    --bg-panel: 0 0% 15%;             /* #252526 */
-    --bg-panel-alt: 0 0% 18%;         /* #2D2D2D */
-    --bg-timeline: 0 0% 8%;           /* #141414 */
+    --bg-main: 210 11% 13%;           /* #1F1F21 */
+    --bg-panel: 216 10% 16%;          /* #282830 */
+    --bg-panel-alt: 216 8% 19%;       /* #2F2F38 */
+    --bg-timeline: 210 12% 9%;        /* #161618 */
     
-    --text-primary: 0 0% 87%;         /* #DDDDDD */
-    --text-secondary: 0 0% 63%;       /* #A0A0A0 */
+    --text-primary: 0 0% 90%;         /* #E5E5E5 */
+    --text-secondary: 210 5% 65%;     /* #A1A3A8 */
     
-    --accent: 256 65% 76%;            /* #A78BFA */
-    --accent-hover: 240 100% 80%;     /* #9999FF */
+    --accent: 197 100% 48%;           /* #00A4F6 - Bright cyan-blue */
+    --accent-hover: 197 100% 55%;     /* #1FB4FF */
     
-    --border: 0 0% 17%;               /* #2C2C2C */
+    --border: 216 8% 20%;             /* #31313A */
     
     /* Standard tokens mapped to studio theme */
-    --background: 210 11% 12%;
-    --foreground: 0 0% 87%;
+    --background: 210 11% 13%;
+    --foreground: 0 0% 90%;
     
-    --card: 0 0% 15%;
-    --card-foreground: 0 0% 87%;
+    --card: 216 10% 16%;
+    --card-foreground: 0 0% 90%;
     
-    --popover: 0 0% 15%;
-    --popover-foreground: 0 0% 87%;
+    --popover: 216 10% 16%;
+    --popover-foreground: 0 0% 90%;
     
-    --primary: 256 65% 76%;
+    --primary: 197 100% 48%;
     --primary-foreground: 0 0% 100%;
     
-    --secondary: 0 0% 18%;
-    --secondary-foreground: 0 0% 87%;
+    --secondary: 216 8% 19%;
+    --secondary-foreground: 0 0% 90%;
     
-    --muted: 0 0% 18%;
-    --muted-foreground: 0 0% 63%;
+    --muted: 216 8% 19%;
+    --muted-foreground: 210 5% 65%;
     
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
     
-    --input: 0 0% 17%;
-    --ring: 256 65% 76%;
+    --input: 216 8% 20%;
+    --ring: 197 100% 48%;
     
     --radius: 0.25rem;
   }
