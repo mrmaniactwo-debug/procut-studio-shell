@@ -8,8 +8,8 @@ export const Timeline = () => {
   return (
     <div className="h-full bg-studio-timeline flex flex-col border-t border-border">
       {/* Panel Header */}
-      <div className="h-10 px-3 flex items-center border-b border-border shrink-0">
-        <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+      <div className="h-9 px-3 flex items-center border-b border-border shrink-0 bg-studio-panel">
+        <h2 className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
           Timeline
         </h2>
       </div>
@@ -31,8 +31,9 @@ export const Timeline = () => {
         
         {/* Video Track */}
         <div className="h-16 border-b border-border flex">
-          <div className="w-20 bg-studio-panel flex items-center justify-center border-r border-border shrink-0">
-            <Film className="w-4 h-4 text-muted-foreground" />
+          <div className="w-16 bg-studio-panel flex flex-col items-center justify-center border-r border-border shrink-0">
+            <Film className="w-3.5 h-3.5 text-muted-foreground mb-0.5" />
+            <span className="text-[9px] text-muted-foreground/70 font-medium">V1</span>
           </div>
           <div className="flex-1 bg-studio-timeline relative">
             {/* Empty track area */}
@@ -41,12 +42,19 @@ export const Timeline = () => {
         
         {/* Audio Track */}
         <div className="h-16 border-b border-border flex">
-          <div className="w-20 bg-studio-panel flex items-center justify-center border-r border-border shrink-0">
-            <Volume2 className="w-4 h-4 text-muted-foreground" />
+          <div className="w-16 bg-studio-panel flex flex-col items-center justify-center border-r border-border shrink-0">
+            <Volume2 className="w-3.5 h-3.5 text-muted-foreground mb-0.5" />
+            <span className="text-[9px] text-muted-foreground/70 font-medium">A1</span>
           </div>
           <div className="flex-1 bg-studio-timeline relative">
             {/* Empty track area */}
           </div>
+        </div>
+        
+        <div className="p-3 text-center">
+          <p className="text-[11px] text-muted-foreground/50">
+            Timeline — V1 / A1 placeholders
+          </p>
         </div>
       </div>
     </div>
