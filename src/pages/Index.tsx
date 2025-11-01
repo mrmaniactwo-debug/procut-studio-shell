@@ -4,6 +4,7 @@ import { SourceMonitor } from "@/components/editor/SourceMonitor";
 import { ProgramMonitor } from "@/components/editor/ProgramMonitor";
 import { Timeline } from "@/components/editor/Timeline";
 import { InspectorPanel } from "@/components/editor/InspectorPanel";
+import { AudioMeters } from "@/components/editor/AudioMeters";
 import {
   ResizablePanelGroup,
   ResizablePanel,
@@ -37,26 +38,31 @@ const Index = () => {
               
               <ResizableHandle className="w-[1px] bg-border hover:bg-accent/50 transition-colors" />
               
-              {/* Center: Dual Monitors in Shared Panel */}
+              {/* Center: Dual Monitors with Audio Meters */}
               <ResizablePanel defaultSize={60} minSize={40}>
-                <div className="h-full bg-studio-panel">
-                  {/* Shared Panel Header */}
-                  <div className="h-7 px-3 flex items-center border-b border-border/50 bg-studio-panel-alt">
-                    <h2 className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
-                      Monitors
-                    </h2>
+                <div className="h-full bg-studio-panel flex">
+                  <div className="flex-1 flex flex-col">
+                    {/* Shared Panel Header */}
+                    <div className="h-7 px-3 flex items-center border-b border-border/50 bg-studio-panel-alt">
+                      <h2 className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
+                        Monitors
+                      </h2>
+                    </div>
+                    
+                    {/* Side-by-side monitors with slim divider */}
+                    <div className="flex flex-1">
+                      <div className="flex-1">
+                        <SourceMonitor />
+                      </div>
+                      <Separator orientation="vertical" className="bg-border/50 w-[1px]" />
+                      <div className="flex-1">
+                        <ProgramMonitor />
+                      </div>
+                    </div>
                   </div>
                   
-                  {/* Side-by-side monitors with slim divider */}
-                  <div className="flex h-[calc(100%-1.75rem)]">
-                    <div className="flex-1">
-                      <SourceMonitor />
-                    </div>
-                    <Separator orientation="vertical" className="bg-border/50 w-[1px]" />
-                    <div className="flex-1">
-                      <ProgramMonitor />
-                    </div>
-                  </div>
+                  {/* Audio Meters */}
+                  <AudioMeters />
                 </div>
               </ResizablePanel>
               
