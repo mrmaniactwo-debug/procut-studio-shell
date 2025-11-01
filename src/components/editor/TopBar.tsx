@@ -1,4 +1,4 @@
-import { Film, Minimize2, Maximize2, X } from "lucide-react";
+import { Film, Maximize2 } from "lucide-react";
 
 /**
  * TopBar Component
@@ -17,16 +17,10 @@ export const TopBar = () => {
       {/* Future: toolbar controls will go here */}
       <div className="flex-1" />
       
-      {/* Fake Window Controls (visual only) */}
-      <div className="flex items-center gap-1">
-        <button className="w-8 h-8 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-studio-panel-alt rounded transition-colors">
-          <Minimize2 className="w-3.5 h-3.5" />
-        </button>
+      {/* Fullscreen Toggle */}
+      <div className="flex items-center">
         <button className="w-8 h-8 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-studio-panel-alt rounded transition-colors">
           <Maximize2 className="w-3.5 h-3.5" />
-        </button>
-        <button className="w-8 h-8 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-destructive/20 rounded transition-colors">
-          <X className="w-4 h-4" />
         </button>
       </div>
     </header>
