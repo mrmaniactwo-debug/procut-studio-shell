@@ -9,6 +9,7 @@ import {
   ResizablePanel,
   ResizableHandle,
 } from "@/components/ui/resizable";
+import { Separator } from "@/components/ui/separator";
 
 /**
  * ProCut Video Editor - Main Layout
@@ -36,19 +37,27 @@ const Index = () => {
               
               <ResizableHandle className="w-[1px] bg-border hover:bg-accent/50 transition-colors" />
               
-              {/* Center: Dual Monitors (Source | Program) */}
+              {/* Center: Dual Monitors in Shared Panel */}
               <ResizablePanel defaultSize={60} minSize={40}>
-                <ResizablePanelGroup direction="horizontal">
-                  <ResizablePanel defaultSize={50} minSize={35}>
-                    <SourceMonitor />
-                  </ResizablePanel>
+                <div className="h-full bg-studio-panel">
+                  {/* Shared Panel Header */}
+                  <div className="h-7 px-3 flex items-center border-b border-border/50 bg-studio-panel-alt">
+                    <h2 className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
+                      Monitors
+                    </h2>
+                  </div>
                   
-                  <ResizableHandle className="w-[1px] bg-border hover:bg-accent/50 transition-colors" />
-                  
-                  <ResizablePanel defaultSize={50} minSize={35}>
-                    <ProgramMonitor />
-                  </ResizablePanel>
-                </ResizablePanelGroup>
+                  {/* Side-by-side monitors with slim divider */}
+                  <div className="flex h-[calc(100%-1.75rem)]">
+                    <div className="flex-1">
+                      <SourceMonitor />
+                    </div>
+                    <Separator orientation="vertical" className="bg-border/50 w-[1px]" />
+                    <div className="flex-1">
+                      <ProgramMonitor />
+                    </div>
+                  </div>
+                </div>
               </ResizablePanel>
               
               <ResizableHandle className="w-[1px] bg-border hover:bg-accent/50 transition-colors" />

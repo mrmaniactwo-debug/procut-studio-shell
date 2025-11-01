@@ -9,10 +9,10 @@ All colors MUST be HSL.
 @layer base {
   :root {
     /* ProCut Studio Theme - Adobe Premiere Inspired */
-    --bg-main: 210 11% 13%;           /* #1F1F21 */
-    --bg-panel: 216 10% 16%;          /* #282830 */
-    --bg-panel-alt: 216 8% 19%;       /* #2F2F38 */
-    --bg-timeline: 210 12% 9%;        /* #161618 */
+    --bg-main: 240 15% 7%;            /* #0E0E12 */
+    --bg-panel: 240 12% 10%;          /* #171719 */
+    --bg-panel-alt: 240 10% 13%;      /* #1F1F22 */
+    --bg-timeline: 240 15% 6%;        /* #0B0B0F */
     
     --text-primary: 0 0% 90%;         /* #E5E5E5 */
     --text-secondary: 210 5% 65%;     /* #A1A3A8 */
@@ -23,28 +23,28 @@ All colors MUST be HSL.
     --border: 216 8% 20%;             /* #31313A */
     
     /* Standard tokens mapped to studio theme */
-    --background: 210 11% 13%;
+    --background: 240 15% 7%;
     --foreground: 0 0% 90%;
     
-    --card: 216 10% 16%;
+    --card: 240 12% 10%;
     --card-foreground: 0 0% 90%;
     
-    --popover: 216 10% 16%;
+    --popover: 240 12% 10%;
     --popover-foreground: 0 0% 90%;
     
     --primary: 197 100% 48%;
     --primary-foreground: 0 0% 100%;
     
-    --secondary: 216 8% 19%;
+    --secondary: 240 10% 13%;
     --secondary-foreground: 0 0% 90%;
     
-    --muted: 216 8% 19%;
+    --muted: 240 10% 13%;
     --muted-foreground: 210 5% 65%;
     
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
     
-    --input: 216 8% 20%;
+    --input: 240 12% 10%;
     --ring: 197 100% 48%;
     
     --radius: 0.25rem;
