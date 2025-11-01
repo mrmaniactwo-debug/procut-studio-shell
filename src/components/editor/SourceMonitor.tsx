@@ -1,4 +1,4 @@
-import { Play, SkipBack, SkipForward, Volume2 } from "lucide-react";
+import { Play, SkipBack, SkipForward } from "lucide-react";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 
 /**
@@ -15,12 +15,24 @@ export const SourceMonitor = () => {
       </div>
       
       {/* Video Display - 16:9 */}
-      <div className="flex-1 flex items-center justify-center p-3 bg-studio-main">
+      <div className="flex-1 flex items-center justify-center p-3 bg-studio-main relative">
         <AspectRatio ratio={16 / 9} className="w-full">
           <div className="w-full h-full bg-black flex items-center justify-center">
             <Play className="w-12 h-12 text-muted-foreground/20" />
           </div>
         </AspectRatio>
+        
+        {/* Audio Level Bar */}
+        <div className="absolute bottom-6 right-6 w-6 h-32 bg-studio-panel border border-border/30 rounded flex flex-col-reverse p-1 gap-0.5">
+          {[...Array(12)].map((_, i) => (
+            <div 
+              key={i} 
+              className={`h-full w-full rounded-sm ${
+                i < 4 ? 'bg-accent/60' : 'bg-studio-timeline'
+              }`}
+            />
+          ))}
+        </div>
       </div>
       
       {/* Controls Bar */}
@@ -58,9 +70,7 @@ export const SourceMonitor = () => {
             </button>
           </div>
           
-          <button className="w-6 h-6 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors">
-            <Volume2 className="w-3 h-3" />
-          </button>
+          <div className="w-6"></div>
         </div>
       </div>
     </div>

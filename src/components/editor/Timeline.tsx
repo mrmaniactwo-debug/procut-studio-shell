@@ -1,17 +1,38 @@
-import { Film, Volume2 } from "lucide-react";
+import { Film, Volume2, Scissors, Hand, Move, Type, Zap } from "lucide-react";
 
 /**
  * Timeline Component
- * Bottom panel - ruler, video tracks, audio tracks (empty placeholders)
+ * Bottom panel - toolbar, ruler, video tracks, audio tracks
  */
 export const Timeline = () => {
   return (
     <div className="h-full bg-studio-timeline flex flex-col border-t border-border">
-      {/* Panel Header */}
-      <div className="h-9 px-3 flex items-center border-b border-border shrink-0 bg-studio-panel">
-        <h2 className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
-          Timeline
-        </h2>
+      {/* Panel Header with Toolbar */}
+      <div className="shrink-0 bg-studio-panel border-b border-border">
+        <div className="h-8 px-3 flex items-center justify-between border-b border-border/30">
+          <h2 className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
+            Timeline
+          </h2>
+        </div>
+        
+        {/* Toolbar */}
+        <div className="h-9 px-3 flex items-center gap-1">
+          <button className="w-8 h-8 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-studio-panel-alt rounded transition-colors">
+            <Hand className="w-3.5 h-3.5" />
+          </button>
+          <button className="w-8 h-8 flex items-center justify-center text-accent bg-studio-panel-alt rounded">
+            <Move className="w-3.5 h-3.5" />
+          </button>
+          <button className="w-8 h-8 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-studio-panel-alt rounded transition-colors">
+            <Scissors className="w-3.5 h-3.5" />
+          </button>
+          <button className="w-8 h-8 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-studio-panel-alt rounded transition-colors">
+            <Zap className="w-3.5 h-3.5" />
+          </button>
+          <button className="w-8 h-8 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-studio-panel-alt rounded transition-colors">
+            <Type className="w-3.5 h-3.5" />
+          </button>
+        </div>
       </div>
       
       {/* Timeline Content */}

@@ -2,7 +2,7 @@ import { Film, Maximize2 } from "lucide-react";
 
 /**
  * TopBar Component
- * Main header for ProCut editor - displays app branding, future controls, and window chrome
+ * Main header for ProCut editor - displays app branding, project title, and fullscreen toggle
  */
 export const TopBar = () => {
   return (
@@ -14,8 +14,10 @@ export const TopBar = () => {
         </h1>
       </div>
       
-      {/* Future: toolbar controls will go here */}
-      <div className="flex-1" />
+      {/* Project Title */}
+      <div className="flex-1 flex items-center justify-center">
+        <span className="text-sm text-muted-foreground font-medium">Untitled Project</span>
+      </div>
       
       {/* Fullscreen Toggle */}
       <div className="flex items-center">
