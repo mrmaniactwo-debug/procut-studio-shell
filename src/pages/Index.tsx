@@ -29,17 +29,17 @@ const Index = () => {
       <div className="flex-1 overflow-hidden">
         <ResizablePanelGroup direction="vertical">
           {/* Upper Section: Media | Source/Program | Inspector */}
-          <ResizablePanel defaultSize={60} minSize={30}>
+          <ResizablePanel defaultSize={55} minSize={30}>
             <ResizablePanelGroup direction="horizontal">
               {/* Left: Media Library */}
-              <ResizablePanel defaultSize={18} minSize={15} maxSize={30}>
+              <ResizablePanel defaultSize={14} minSize={12} maxSize={30}>
                 <MediaPanel />
               </ResizablePanel>
               
-              <ResizableHandle className="w-[1px] bg-border hover:bg-accent/50 transition-colors" />
+              <ResizableHandle />
               
-              {/* Center: Dual Monitors with Audio Meters */}
-              <ResizablePanel defaultSize={60} minSize={40}>
+              {/* Center: Dual Monitors */}
+              <ResizablePanel defaultSize={72} minSize={40}>
                 <div className="h-full bg-studio-panel flex">
                   <div className="flex-1 flex flex-col">
                     {/* Shared Panel Header */}
@@ -49,8 +49,8 @@ const Index = () => {
                       </h2>
                     </div>
                     
-                    {/* Side-by-side monitors with slim divider */}
-                    <div className="flex flex-1">
+                    {/* Side-by-side monitors centered and allowed to grow */}
+                    <div className="flex flex-1 items-center justify-center gap-4 px-6">
                       <div className="flex-1">
                         <SourceMonitor />
                       </div>
@@ -60,26 +60,31 @@ const Index = () => {
                       </div>
                     </div>
                   </div>
-                  
-                  {/* Audio Meters */}
-                  <AudioMeters />
                 </div>
               </ResizablePanel>
               
-              <ResizableHandle className="w-[1px] bg-border hover:bg-accent/50 transition-colors" />
+              <ResizableHandle />
               
               {/* Right: Inspector */}
-              <ResizablePanel defaultSize={22} minSize={15} maxSize={30}>
+              <ResizablePanel defaultSize={14} minSize={12} maxSize={30}>
                 <InspectorPanel />
               </ResizablePanel>
             </ResizablePanelGroup>
           </ResizablePanel>
           
-          <ResizableHandle className="h-[1px] bg-border hover:bg-accent/50 transition-colors" />
+          <ResizableHandle />
           
           {/* Bottom: Timeline */}
-          <ResizablePanel defaultSize={40} minSize={20} maxSize={60}>
-            <Timeline />
+          <ResizablePanel defaultSize={45} minSize={20} maxSize={60}>
+            <ResizablePanelGroup direction="horizontal">
+              <ResizablePanel>
+                <Timeline />
+              </ResizablePanel>
+              <ResizableHandle />
+              <ResizablePanel defaultSize={4} minSize={3} maxSize={8}>
+                <AudioMeters />
+              </ResizablePanel>
+            </ResizablePanelGroup>
           </ResizablePanel>
         </ResizablePanelGroup>
       </div>

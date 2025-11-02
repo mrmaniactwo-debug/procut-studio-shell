@@ -8,7 +8,7 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    /* ProCut Studio Theme - Adobe Premiere Inspired */
+    /* ProCut Studio Theme - Light Wave */
     --bg-main: 240 15% 7%;            /* #0E0E12 */
     --bg-panel: 240 12% 10%;          /* #171719 */
     --bg-panel-alt: 240 10% 13%;      /* #1F1F22 */
@@ -17,8 +17,8 @@ All colors MUST be HSL.
     --text-primary: 0 0% 90%;         /* #E5E5E5 */
     --text-secondary: 210 5% 65%;     /* #A1A3A8 */
     
-    --accent: 197 100% 48%;           /* #00A4F6 - Bright cyan-blue */
-    --accent-hover: 197 100% 55%;     /* #1FB4FF */
+    --accent: 220 100% 60%;           /* Vibrant Blue */
+    --accent-hover: 220 100% 65%;
     
     --border: 216 8% 20%;             /* #31313A */
     
@@ -32,7 +32,7 @@ All colors MUST be HSL.
     --popover: 240 12% 10%;
     --popover-foreground: 0 0% 90%;
     
-    --primary: 197 100% 48%;
+    --primary: 220 100% 60%;
     --primary-foreground: 0 0% 100%;
     
     --secondary: 240 10% 13%;
@@ -45,7 +45,7 @@ All colors MUST be HSL.
     --destructive-foreground: 0 0% 100%;
     
     --input: 240 12% 10%;
-    --ring: 197 100% 48%;
+    --ring: 220 100% 60%;
     
     --radius: 0.25rem;
   }
@@ -86,4 +86,37 @@ All colors MUST be HSL.
   ::-webkit-scrollbar-thumb:hover {
     background: hsl(var(--muted));
   }
+}
+
+@layer utilities {
+  .animated-gradient-text {
+    @apply text-transparent bg-clip-text;
+    background-image: linear-gradient(90deg, hsl(var(--accent)), #34d399, #a78bfa, hsl(var(--accent)));
+    background-size: 200% 100%;
+    animation: gradient-wave 10s linear infinite;
+  }
+
+  .animated-gradient-bg {
+    background-image: linear-gradient(90deg, hsl(var(--accent)), #34d399, #a78bfa, hsl(var(--accent)));
+    background-size: 200% 100%;
+    animation: gradient-wave 10s linear infinite;
+  }
+
+  .animated-gradient-stroke path {
+    stroke: url(#gradient-icon);
+  }
+
+  .animated-hover-gradient::after {
+    content: '';
+    @apply absolute inset-0 opacity-0 transition-opacity duration-300;
+  }
+
+  .animated-hover-gradient:hover::after {
+    @apply animated-gradient-bg opacity-100;
+  }
+}
+
+@keyframes gradient-wave {
+  0% { background-position: 0% 50%; }
+  100% { background-position: -200% 50%; }
 }

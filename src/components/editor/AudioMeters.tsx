@@ -4,7 +4,7 @@
  */
 export const AudioMeters = () => {
   return (
-    <div className="h-full w-16 bg-studio-panel border-l border-border flex flex-col">
+    <div className="h-full w-full bg-studio-panel flex flex-col">
       {/* Header */}
       <div className="h-8 px-2 flex items-center justify-center border-b border-border/30 shrink-0">
         <span className="text-[9px] font-medium text-muted-foreground uppercase tracking-wider">Audio</span>

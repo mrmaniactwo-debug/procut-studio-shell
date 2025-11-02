@@ -1,4 +1,4 @@
-import { Play, SkipBack, SkipForward } from "lucide-react";
+import { Play, SkipBack, SkipForward, ArrowLeftToLine, ArrowRightToLine } from "lucide-react";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 
 /**
@@ -29,8 +29,8 @@ export const SourceMonitor = () => {
         <div className="h-7 px-3 flex items-center gap-2 border-b border-border/20">
           <span className="text-[10px] font-mono text-muted-foreground/60 w-16">00:00:00:00</span>
           <div className="flex-1 h-1 bg-studio-timeline relative cursor-pointer">
-            <div className="absolute top-0 left-0 h-full w-[30%] bg-accent/20"></div>
-            <div className="absolute top-1/2 left-[30%] w-2 h-2 -translate-y-1/2 -translate-x-1/2 bg-accent rounded-full"></div>
+            <div className="absolute top-0 left-0 h-full w-[30%] animated-gradient-bg"></div>
+            <div className="absolute top-1/2 left-[30%] w-2 h-2 -translate-y-1/2 -translate-x-1/2 animated-gradient-bg rounded-full"></div>
           </div>
           <span className="text-[10px] font-mono text-muted-foreground/60 w-16 text-right">00:00:10:00</span>
         </div>
@@ -38,11 +38,11 @@ export const SourceMonitor = () => {
         {/* Playback Controls */}
         <div className="h-7 px-3 flex items-center justify-between">
           <div className="flex items-center gap-1">
-            <button className="w-6 h-6 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors">
-              <span className="text-[9px] font-medium">I</span>
+            <button className="w-6 h-6 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors" title="Mark In">
+              <ArrowLeftToLine className="w-3.5 h-3.5 animated-gradient-icon" />
             </button>
-            <button className="w-6 h-6 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors">
-              <span className="text-[9px] font-medium">O</span>
+            <button className="w-6 h-6 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors" title="Mark Out">
+              <ArrowRightToLine className="w-3.5 h-3.5 animated-gradient-icon" />
             </button>
           </div>
           
@@ -51,7 +51,7 @@ export const SourceMonitor = () => {
               <SkipBack className="w-3 h-3" />
             </button>
             <button className="w-7 h-7 flex items-center justify-center text-foreground hover:text-accent transition-colors">
-              <Play className="w-3.5 h-3.5" />
+              <Play className="w-3.5 h-3.5 animated-gradient-stroke" />
             </button>
             <button className="w-6 h-6 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors">
               <SkipForward className="w-3 h-3" />
