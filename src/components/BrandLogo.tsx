@@ -7,7 +7,7 @@ interface BrandLogoProps {
 
 /**
  * BrandLogo
- * ProCut logomark: lens ring + play triangle with a diagonal cut slash.
+ * ProCut logomark: lens ring + play triangle (clean, no slash).
  * Subtle animated gradient via stops; keeps a clean, professional silhouette.
  */
 export const BrandLogo: React.FC<BrandLogoProps> = ({ size = 20, className = "" }) => {
@@ -43,16 +43,6 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({ size = 20, className = "" 
         fill="none"
       />
 
-      {/* Diagonal cut slash */}
-      <path
-        d="M8.5 9.25 L15.5 14.75"
-        stroke="url(#procut-logo-gradient)"
-        strokeWidth="1.2"
-        strokeLinecap="round"
-      />
-
-      {/* Blade accent (subtle node along the slash) */}
-      <circle cx="12" cy="12" r="0.8" fill="url(#procut-logo-gradient)" />
     </svg>
   );
 };

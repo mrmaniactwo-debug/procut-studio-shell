@@ -103,6 +103,24 @@ All colors MUST be HSL.
   }
 
   .animated-gradient-stroke path {
+    stroke: currentColor;
+  }
+  .animated-gradient-stroke line,
+  .animated-gradient-stroke polyline,
+  .animated-gradient-stroke polygon,
+  .animated-gradient-stroke circle,
+  .animated-gradient-stroke rect {
+    stroke: currentColor;
+  }
+  /* If the gradient exists inside the SVG, this declaration applies; otherwise previous currentColor remains */
+  .animated-gradient-stroke path {
+    stroke: url(#gradient-icon);
+  }
+  .animated-gradient-stroke line,
+  .animated-gradient-stroke polyline,
+  .animated-gradient-stroke polygon,
+  .animated-gradient-stroke circle,
+  .animated-gradient-stroke rect {
     stroke: url(#gradient-icon);
   }
 

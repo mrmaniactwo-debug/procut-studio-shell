@@ -1,4 +1,4 @@
-import { Play, SkipBack, SkipForward, ArrowLeftToLine, ArrowRightToLine } from "lucide-react";
+import { Play, SkipBack, SkipForward, ArrowLeftToLine, ArrowRightToLine, Settings } from "lucide-react";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 
 /**
@@ -11,7 +11,12 @@ export const SourceMonitor = () => {
       {/* Monitor Header */}
       <div className="h-8 px-3 flex items-center justify-between border-b border-border/30 shrink-0">
         <span className="text-[11px] font-medium text-muted-foreground">Source</span>
-        <span className="text-[11px] font-mono text-muted-foreground">00:00:00:00</span>
+        <div className="flex items-center gap-3">
+          <span className="text-[11px] font-mono text-muted-foreground">00:00:00:00</span>
+          <button className="w-5 h-5 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors" title="Settings">
+            <Settings className="w-3 h-3" />
+          </button>
+        </div>
       </div>
       
       {/* Video Display - 16:9 */}
