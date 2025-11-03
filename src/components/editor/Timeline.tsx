@@ -165,7 +165,7 @@ export const Timeline = () => {
   const playheadXRef = useRef<number>(0);
   const lastPointerClientX = useRef<number | null>(null);
   const hoverActive = useRef<boolean>(false);
-  const pinPlayheadOnScrollRef = useRef<boolean>(true);
+  const pinPlayheadOnScrollRef = useRef<boolean>(false);
   const lastScrollLeftRef = useRef(0);
   const programmaticScrollRef = useRef(false);
 
@@ -183,8 +183,12 @@ export const Timeline = () => {
   const [clipStartSec, setClipStartSec] = useState<number>(1);
   const [clipDurSec, setClipDurSec] = useState<number>(3);
   
-  // Fixed timeline duration like Premiere Pro (5 minutes default)
-  const timelineSec = 300; // 5 minutes (00:05:00:00)
+  // Auto-extend timeline based on clip positions (minimum 60s)
+  const timelineSec = useMemo(() => {
+    const clipEndSec = clipStartSec + clipDurSec;
+    // Timeline extends to fit clips, minimum 60s, with extra padding
+    return Math.max(60, Math.ceil((clipEndSec + 10) / 10) * 10);
+  }, [clipStartSec, clipDurSec]);
 
   // Visible window (seconds) computed from scroll + container width
   const containerRef = scrollRef; // alias
@@ -202,8 +206,8 @@ export const Timeline = () => {
   const visibleEndPx = visibleStartPx + containerWidth + 400; // small buffer
   const visibleStartSec = visibleStartPx / PX_PER_SEC;
   const visibleEndSec = Math.min(timelineSec, Math.max(visibleStartSec, visibleEndPx / PX_PER_SEC));
-  // Fixed timeline width based on duration
-  const timelineWidthPx = timelineSec * PX_PER_SEC;
+  // Ensure ruler/track canvases span at least the visible viewport so borders are continuous
+  const timelineWidthPx = Math.max(timelineSec * PX_PER_SEC, scrollLeft + containerWidth);
 
   useEffect(() => {
     const el = scrollRef.current;
@@ -300,21 +304,11 @@ export const Timeline = () => {
     const epsilon = 0.5;
     const visible = playheadViewX >= TRACK_HEADER_PX - epsilon && playheadViewX <= el.clientWidth + epsilon;
     
-    // Calculate clip center for anchoring
-    const clipCenterSec = clipStartSec + (clipDurSec / 2);
-    const clipCenterPx = clipCenterSec * PX_PER_SEC;
-    const clipCenterViewX = (TRACK_HEADER_PX - el.scrollLeft) + clipCenterPx;
-    const clipVisible = clipCenterViewX >= TRACK_HEADER_PX - epsilon && clipCenterViewX <= el.clientWidth + epsilon;
-    
-    // Determine anchor: prefer clip center if visible, then playhead if visible, otherwise content center
+    // Determine anchor: prefer playhead if visible, otherwise content center
     let xWithin: number;
     let anchorTimeSec: number;
-    
-    if (clipVisible) {
-      // Anchor to clip center
-      xWithin = Math.max(TRACK_HEADER_PX, Math.min(el.clientWidth, clipCenterViewX));
-      anchorTimeSec = clipCenterSec;
-    } else if (visible) {
+
+    if (visible) {
       // Anchor to playhead
       xWithin = Math.max(TRACK_HEADER_PX, Math.min(el.clientWidth, playheadViewX));
       anchorTimeSec = playheadSec;
@@ -826,16 +820,11 @@ export const Timeline = () => {
               const factor = Math.exp(-e.deltaY * 0.0015);
               const raw = zoom * factor;
               const newZoom = Math.min(ZOOM_MAX_PX, Math.max(ZOOM_MIN_PX, raw));
-              // Anchor wheel zoom at the playhead when visible; otherwise recenter it
-              const playheadViewX = (TRACK_HEADER_PX - el.scrollLeft) + playheadX;
-              const epsilon = 0.5;
-              const visible = playheadViewX > TRACK_HEADER_PX - epsilon && playheadViewX < el.clientWidth + epsilon;
-              const contentCenter = TRACK_HEADER_PX + Math.max(0, el.clientWidth - TRACK_HEADER_PX) / 2;
-              const xWithin = visible
-                ? Math.max(TRACK_HEADER_PX + 0.5, Math.min(el.clientWidth, playheadViewX))
-                : contentCenter;
-              const anchorTimeSec = playheadX / PX_PER_SEC;
-              applyZoomAtX(newZoom, xWithin, { preservePlayhead: true, anchorTimeSec });
+              // Anchor wheel zoom to mouse cursor like Premiere Pro
+              const rect2 = el.getBoundingClientRect();
+              const xWithin = Math.max(TRACK_HEADER_PX, Math.min(el.clientWidth, e.clientX - rect2.left));
+              const anchorTimeSec = Math.max(0, el.scrollLeft - TRACK_HEADER_PX + xWithin) / PX_PER_SEC;
+              applyZoomAtX(newZoom, xWithin, { preservePlayhead: false, anchorTimeSec });
               return;
             }
             // Shift + wheel => horizontal scroll
@@ -871,13 +860,6 @@ export const Timeline = () => {
                 </div>
               );
             })}
-            {/* End timecode marker (like Premiere Pro) */}
-            <div className="absolute bottom-0 right-0 z-10">
-              <span className="absolute bottom-[14px] right-0 text-[10px] text-muted-foreground font-mono">
-                {formatTimecode(timelineSec)}
-              </span>
-              <div className="w-px h-2 bg-muted-foreground"></div>
-            </div>
           </div>
           {/* Continuous bottom line under the ruler (header + tick canvas) */}
           <div
