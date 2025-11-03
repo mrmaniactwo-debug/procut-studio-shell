@@ -236,68 +236,6 @@ export const Timeline = () => {
 
   const TRACK_HEADER_PX = 160; // w-40
 
-  // Track the most recent px-per-sec so time conversions stay accurate across rapid zoom changes
-  const pxPerSecRef = useRef(PX_PER_SEC);
-  useEffect(() => { pxPerSecRef.current = PX_PER_SEC; }, [PX_PER_SEC]);
-  const playheadSecRef = useRef(0);
-  useEffect(() => { playheadSecRef.current = playheadX / pxPerSecRef.current; }, [playheadX]);
-
-
-  // Lock anchor during slider drags so repeated updates reuse the same screen position
-  const sliderActiveRef = useRef<boolean>(false);
-  const zoomAnchorLockRef = useRef<null | { xWithin: number; anchorTimeSec: number }>(null);
-
-  // Helper: anchor all non-wheel zooms at the playhead and apply zoom immediately
-  const applyZoomSmart = useCallback((newZoom: number) => {
-    const el = scrollRef.current;
-    if (!el) { setZoom(newZoom); return; }
-
-    const playheadSec = playheadSecRef.current;
-    const playheadViewX = (TRACK_HEADER_PX - el.scrollLeft) + playheadX;
-    const epsilon = 0.5;
-    const visible = playheadViewX >= TRACK_HEADER_PX - epsilon && playheadViewX <= el.clientWidth + epsilon;
-    
-    // Determine anchor: prefer playhead if visible, otherwise content center
-    let xWithin: number;
-    let anchorTimeSec: number;
-
-    if (visible) {
-      // Anchor to playhead
-      xWithin = Math.max(TRACK_HEADER_PX, Math.min(el.clientWidth, playheadViewX));
-      anchorTimeSec = playheadSec;
-    } else {
-      // Anchor to content center
-      const contentCenter = TRACK_HEADER_PX + Math.max(0, el.clientWidth - TRACK_HEADER_PX) / 2;
-      xWithin = contentCenter;
-      anchorTimeSec = playheadSec;
-    }
-
-    const anchor = sliderActiveRef.current && zoomAnchorLockRef.current
-      ? zoomAnchorLockRef.current
-      : { xWithin, anchorTimeSec };
-
-    applyZoomAtX(newZoom, anchor.xWithin, { preservePlayhead: true, anchorTimeSec: anchor.anchorTimeSec });
-
-    // After the zoom lands, read back where that anchor ended up so the next tick
-    // nudges from the actual post-layout position. This minimizes visible “jumping”.
-    if (sliderActiveRef.current) {
-      requestAnimationFrame(() => {
-        const elAfter = scrollRef.current;
-        if (!elAfter) return;
-        const anchorTimelineX = anchor.anchorTimeSec * pxPerSecRef.current;
-        const viewX = (TRACK_HEADER_PX - elAfter.scrollLeft) + anchorTimelineX;
-        const clampedViewX = Math.max(TRACK_HEADER_PX, Math.min(elAfter.clientWidth, viewX));
-        zoomAnchorLockRef.current = {
-          xWithin: clampedViewX,
-          anchorTimeSec: anchor.anchorTimeSec,
-        };
-      });
-    }
-
-    if (!sliderActiveRef.current) {
-      zoomAnchorLockRef.current = null;
-    }
-  }, [applyZoomAtX, playheadX, setZoom, clipStartSec, clipDurSec, PX_PER_SEC]);
 
   // Tick spacing based on zoom to keep labels readable
   const tickConfig = useMemo(() => {
@@ -613,15 +551,6 @@ export const Timeline = () => {
               </button>
             </TooltipTrigger>
             <TooltipContent>Hand (H)</TooltipContent>
-          </Tooltip>
-
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button className={btnClass(tool === "zoom")} onClick={() => setTool("zoom")} aria-pressed={tool === "zoom"} aria-label="Zoom Tool (Z)">
-                <ZoomIn className="w-3.5 h-3.5" />
-              </button>
-            </TooltipTrigger>
-            <TooltipContent>Zoom Tool (Z)</TooltipContent>
           </Tooltip>
 
           <Tooltip>
