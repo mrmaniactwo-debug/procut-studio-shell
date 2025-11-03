@@ -183,12 +183,8 @@ export const Timeline = () => {
   const [clipStartSec, setClipStartSec] = useState<number>(1);
   const [clipDurSec, setClipDurSec] = useState<number>(3);
   
-  // Auto-extend timeline based on clip positions (minimum 60s)
-  const timelineSec = useMemo(() => {
-    const clipEndSec = clipStartSec + clipDurSec;
-    // Timeline extends to fit clips, minimum 60s, with extra padding
-    return Math.max(60, Math.ceil((clipEndSec + 10) / 10) * 10);
-  }, [clipStartSec, clipDurSec]);
+  // Fixed timeline duration like Premiere Pro (5 minutes default)
+  const timelineSec = 300; // 5 minutes (00:05:00:00)
 
   // Visible window (seconds) computed from scroll + container width
   const containerRef = scrollRef; // alias
@@ -206,8 +202,8 @@ export const Timeline = () => {
   const visibleEndPx = visibleStartPx + containerWidth + 400; // small buffer
   const visibleStartSec = visibleStartPx / PX_PER_SEC;
   const visibleEndSec = Math.min(timelineSec, Math.max(visibleStartSec, visibleEndPx / PX_PER_SEC));
-  // Ensure ruler/track canvases span at least the visible viewport so borders are continuous
-  const timelineWidthPx = Math.max(timelineSec * PX_PER_SEC, scrollLeft + containerWidth);
+  // Fixed timeline width based on duration
+  const timelineWidthPx = timelineSec * PX_PER_SEC;
 
   useEffect(() => {
     const el = scrollRef.current;
@@ -258,31 +254,37 @@ export const Timeline = () => {
     if (!el) { setZoom(newZoom); return; }
     const oldPxPerSec = PX_PER_SEC;
     const oldPlayheadSec = playheadX / oldPxPerSec;
-  // Ensure the anchor x is in the scrollable content area (to avoid negative anchor when center < header)
-  const x = Math.max(TRACK_HEADER_PX, Math.min(el.clientWidth, xWithin));
+    // Ensure the anchor x is in the scrollable content area (to avoid negative anchor when center < header)
+    const x = Math.max(TRACK_HEADER_PX, Math.min(el.clientWidth, xWithin));
     const anchorSec = (opts?.anchorTimeSec != null)
       ? opts.anchorTimeSec
       : Math.max(0, el.scrollLeft - TRACK_HEADER_PX + x) / oldPxPerSec; // based on current scale
-    // Guard programmatic side-effects across zoom + scrollLeft and next frame
-    programmaticScrollRef.current = true;
+    
+    // Update zoom
     setZoom(newZoom);
     const newPxPerSec = Math.max(newZoom, ZOOM_MIN_PX) / 5;
     pxPerSecRef.current = newPxPerSec;
+    
     if (opts?.preservePlayhead) {
       const newPlayheadX = oldPlayheadSec * newPxPerSec;
       setPlayheadX(newPlayheadX);
       playheadSecRef.current = oldPlayheadSec;
     }
+    
+    // Defer scroll adjustment to next frame for smooth zoom
+    programmaticScrollRef.current = true;
     requestAnimationFrame(() => {
-      const desiredScrollLeft = TRACK_HEADER_PX + anchorSec * newPxPerSec - x;
-      const contentWidth = TRACK_HEADER_PX + timelineSec * newPxPerSec;
+      if (!el) return;
+      const desiredScrollLeft = anchorSec * newPxPerSec + TRACK_HEADER_PX - x;
+      const contentWidth = timelineSec * newPxPerSec + TRACK_HEADER_PX;
       const maxScrollLeft = Math.max(0, contentWidth - el.clientWidth);
-      const clamped = Math.max(0, Math.min(maxScrollLeft, desiredScrollLeft));
-      el.scrollLeft = clamped;
-      // Clear on next frame to allow any scroll events due to relayout to settle
-      requestAnimationFrame(() => { programmaticScrollRef.current = false; });
+      el.scrollLeft = Math.max(0, Math.min(maxScrollLeft, desiredScrollLeft));
+      
+      requestAnimationFrame(() => { 
+        programmaticScrollRef.current = false; 
+      });
     });
-  }, [PX_PER_SEC, ZOOM_MIN_PX, scrollRef, setZoom, playheadX, timelineSec]);
+  }, [PX_PER_SEC, ZOOM_MIN_PX, scrollRef, setZoom, playheadX]);
 
   // Lock anchor during slider drags so repeated updates reuse the same screen position
   const sliderActiveRef = useRef<boolean>(false);
@@ -869,6 +871,13 @@ export const Timeline = () => {
                 </div>
               );
             })}
+            {/* End timecode marker (like Premiere Pro) */}
+            <div className="absolute bottom-0 right-0 z-10">
+              <span className="absolute bottom-[14px] right-0 text-[10px] text-muted-foreground font-mono">
+                {formatTimecode(timelineSec)}
+              </span>
+              <div className="w-px h-2 bg-muted-foreground"></div>
+            </div>
           </div>
           {/* Continuous bottom line under the ruler (header + tick canvas) */}
           <div
