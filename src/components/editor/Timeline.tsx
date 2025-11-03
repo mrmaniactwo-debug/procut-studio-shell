@@ -1,11 +1,11 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, memo } from "react";
 import { Film, Volume2, Scissors, Hand, Move, Type, ZoomIn, Magnet, Link2, Lock, Eye, VolumeX, Plus, Minus, Headphones, ChevronsUpDown, ArrowLeftToLine, ArrowRightToLine, MousePointer2 } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import { useProject } from "@/context/ProjectContext";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 // Draggable/Resizable clip sample with basic snapping
-function ClipSample({
+const ClipSampleInner = ({
   leftPx,
   widthPx,
   color = "blue",
@@ -21,7 +21,7 @@ function ClipSample({
   snapping?: boolean;
   gridPx?: number; // minor tick spacing
   snapTargets?: number[]; // additional absolute px to snap to (e.g., playhead, in/out)
-}) {
+}) => {
   const [selected, setSelected] = useState(false);
   const [drag, setDrag] = useState<null | {
     kind: 'move' | 'left' | 'right';
@@ -79,7 +79,7 @@ function ClipSample({
     };
     const onUp = () => setDrag(null);
     window.addEventListener('mousemove', onMove);
-    window.addEventListener('mouseup', onUp, { once: true });
+    window.addEventListener('mouseup', onUp);
     return () => {
       window.removeEventListener('mousemove', onMove);
       window.removeEventListener('mouseup', onUp);
@@ -118,7 +118,21 @@ function ClipSample({
       <span className="text-white text-[10px] font-medium truncate">my_awesome_clip.mp4</span>
     </div>
   );
-}
+};
+
+ClipSampleInner.displayName = 'ClipSample';
+
+// Memoize to prevent unnecessary re-renders
+const ClipSample = memo(ClipSampleInner, (prev, next) => {
+  return (
+    prev.leftPx === next.leftPx &&
+    prev.widthPx === next.widthPx &&
+    prev.color === next.color &&
+    prev.snapping === next.snapping &&
+    prev.gridPx === next.gridPx &&
+    JSON.stringify(prev.snapTargets) === JSON.stringify(next.snapTargets)
+  );
+});
 
 /**
  * Timeline Component
@@ -165,11 +179,16 @@ export const Timeline = () => {
   const [isPanning, setIsPanning] = useState(false);
   const panStart = useRef<{ x: number; scrollLeft: number } | null>(null);
   const [draggingPlayhead, setDraggingPlayhead] = useState(false);
-  // Growable timeline length (seconds). Auto-extends as you scroll near the right edge.
-  const [timelineSec, setTimelineSec] = useState<number>(60); // start with 1 minute
   // Simple linked A/V clip demo state (seconds)
   const [clipStartSec, setClipStartSec] = useState<number>(1);
   const [clipDurSec, setClipDurSec] = useState<number>(3);
+  
+  // Auto-extend timeline based on clip positions (minimum 60s)
+  const timelineSec = useMemo(() => {
+    const clipEndSec = clipStartSec + clipDurSec;
+    // Timeline extends to fit clips, minimum 60s, with extra padding
+    return Math.max(60, Math.ceil((clipEndSec + 10) / 10) * 10);
+  }, [clipStartSec, clipDurSec]);
 
   // Visible window (seconds) computed from scroll + container width
   const containerRef = scrollRef; // alias
@@ -209,11 +228,7 @@ export const Timeline = () => {
       if (pinPlayheadOnScrollRef.current && !programmaticScrollRef.current && delta !== 0) {
         setPlayheadX((x) => Math.max(0, x + delta));
       }
-      // Auto-extend when near the far right to simulate an "infinite" timeline
-      const totalContentPx = TRACK_HEADER_PX + timelineSec * PX_PER_SEC;
-      if (el.scrollLeft + el.clientWidth > totalContentPx - 800) {
-        setTimelineSec((s) => s + 60); // extend by 60s chunks
-      }
+      // Timeline now auto-extends based on clip positions, no manual extension needed
       // Keep skimmer under the cursor while scrolling
       if (skimmerEnabled && hoverActive.current && lastPointerClientX.current !== null) {
         const rect = el.getBoundingClientRect();
@@ -278,18 +293,39 @@ export const Timeline = () => {
     const el = scrollRef.current;
     if (!el) { setZoom(newZoom); return; }
 
-  const playheadSec = playheadSecRef.current;
+    const playheadSec = playheadSecRef.current;
     const playheadViewX = (TRACK_HEADER_PX - el.scrollLeft) + playheadX;
-  const epsilon = 0.5;
-  const visible = playheadViewX >= TRACK_HEADER_PX - epsilon && playheadViewX <= el.clientWidth + epsilon;
-    const contentCenter = TRACK_HEADER_PX + Math.max(0, el.clientWidth - TRACK_HEADER_PX) / 2;
-    const xWithin = visible
-      ? Math.max(TRACK_HEADER_PX, Math.min(el.clientWidth, playheadViewX))
-      : contentCenter;
+    const epsilon = 0.5;
+    const visible = playheadViewX >= TRACK_HEADER_PX - epsilon && playheadViewX <= el.clientWidth + epsilon;
+    
+    // Calculate clip center for anchoring
+    const clipCenterSec = clipStartSec + (clipDurSec / 2);
+    const clipCenterPx = clipCenterSec * PX_PER_SEC;
+    const clipCenterViewX = (TRACK_HEADER_PX - el.scrollLeft) + clipCenterPx;
+    const clipVisible = clipCenterViewX >= TRACK_HEADER_PX - epsilon && clipCenterViewX <= el.clientWidth + epsilon;
+    
+    // Determine anchor: prefer clip center if visible, then playhead if visible, otherwise content center
+    let xWithin: number;
+    let anchorTimeSec: number;
+    
+    if (clipVisible) {
+      // Anchor to clip center
+      xWithin = Math.max(TRACK_HEADER_PX, Math.min(el.clientWidth, clipCenterViewX));
+      anchorTimeSec = clipCenterSec;
+    } else if (visible) {
+      // Anchor to playhead
+      xWithin = Math.max(TRACK_HEADER_PX, Math.min(el.clientWidth, playheadViewX));
+      anchorTimeSec = playheadSec;
+    } else {
+      // Anchor to content center
+      const contentCenter = TRACK_HEADER_PX + Math.max(0, el.clientWidth - TRACK_HEADER_PX) / 2;
+      xWithin = contentCenter;
+      anchorTimeSec = playheadSec;
+    }
 
     const anchor = sliderActiveRef.current && zoomAnchorLockRef.current
       ? zoomAnchorLockRef.current
-  : { xWithin, anchorTimeSec: playheadSec };
+      : { xWithin, anchorTimeSec };
 
     applyZoomAtX(newZoom, anchor.xWithin, { preservePlayhead: true, anchorTimeSec: anchor.anchorTimeSec });
 
@@ -312,7 +348,7 @@ export const Timeline = () => {
     if (!sliderActiveRef.current) {
       zoomAnchorLockRef.current = null;
     }
-  }, [applyZoomAtX, playheadX, setZoom]);
+  }, [applyZoomAtX, playheadX, setZoom, clipStartSec, clipDurSec, PX_PER_SEC]);
 
   // Tick spacing based on zoom to keep labels readable
   const tickConfig = useMemo(() => {
@@ -340,7 +376,30 @@ export const Timeline = () => {
     return list;
   }, [tickConfig, visibleStartSec, visibleEndSec]);
 
-  const handleRulerClick = (e: React.MouseEvent<HTMLDivElement>) => {
+  // Memoize snap targets to prevent recreation
+  const snapTargets = useMemo(() => {
+    const targets = [playheadX];
+    if (inPoint != null) targets.push(inPoint);
+    if (outPoint != null) targets.push(outPoint);
+    return targets;
+  }, [playheadX, inPoint, outPoint]);
+
+  // Memoize formatTimecode
+  const formatTimecode = useCallback((seconds: number) => {
+    const fps = FPS;
+    const s = Math.floor(seconds % 60);
+    const m = Math.floor((seconds / 60) % 60);
+    const h = Math.floor(seconds / 3600);
+    const frames = Math.floor((seconds - Math.floor(seconds)) * fps);
+    const pad = (n: number, l = 2) => n.toString().padStart(l, "0");
+    return `${pad(h)}:${pad(m)}:${pad(s)}:${pad(frames)}`;
+  }, [FPS]);
+
+  // Memoize btnClass
+  const btnClass = useCallback((active: boolean) =>
+    `w-7 h-7 flex items-center justify-center rounded transition-colors ${active ? "text-accent bg-studio-panel-alt" : "text-muted-foreground hover:text-foreground hover:bg-studio-panel-alt"}`, []);
+
+  const handleRulerClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     const el = scrollRef.current;
     if (!el) return;
     const rect = el.getBoundingClientRect();
@@ -351,9 +410,9 @@ export const Timeline = () => {
       px = Math.round(px / step) * step;
     }
     setPlayheadX(px);
-  };
+  }, [snapping, tickConfig.minorPx]);
 
-  const handleRulerMove = (e: React.MouseEvent<HTMLDivElement>) => {
+  const handleRulerMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     const el = scrollRef.current;
     if (!el) return;
     const rect = el.getBoundingClientRect();
@@ -362,12 +421,16 @@ export const Timeline = () => {
     const x = e.clientX - rect.left; // relative to scroll container
     const minX = Math.round(TRACK_HEADER_PX - el.scrollLeft);
     setHoverX(Math.max(minX, Math.round(x)));
-  };
+  }, []);
 
-  const handleRulerLeave = () => { setHoverX(null); hoverActive.current = false; lastPointerClientX.current = null; };
+  const handleRulerLeave = useCallback(() => { 
+    setHoverX(null); 
+    hoverActive.current = false; 
+    lastPointerClientX.current = null; 
+  }, []);
 
   // Content skimmer (follows mouse across ruler and tracks when enabled)
-  const handleContentMove = (e: React.MouseEvent<HTMLDivElement>) => {
+  const handleContentMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     if (!skimmerEnabled || draggingPlayhead || isPanning) return;
     const el = scrollRef.current;
     if (!el) return;
@@ -377,10 +440,15 @@ export const Timeline = () => {
     const x = e.clientX - rect.left; // relative to scroll container
     const minX = Math.round(TRACK_HEADER_PX - el.scrollLeft);
     setHoverX(Math.max(minX, Math.round(x)));
-  };
-  const handleContentLeave = () => { if (hoverX !== null) setHoverX(null); hoverActive.current = false; lastPointerClientX.current = null; };
+  }, [skimmerEnabled, draggingPlayhead, isPanning]);
 
-  const handleContentClick = (e: React.MouseEvent<HTMLDivElement>) => {
+  const handleContentLeave = useCallback(() => { 
+    if (hoverX !== null) setHoverX(null); 
+    hoverActive.current = false; 
+    lastPointerClientX.current = null; 
+  }, [hoverX]);
+
+  const handleContentClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     // Set playhead where clicked (like NLEs). Ignore if panning tool active.
     if (tool === "hand") return;
     const el = scrollRef.current;
@@ -390,11 +458,27 @@ export const Timeline = () => {
     const px = Math.max(0, x - TRACK_HEADER_PX + el.scrollLeft);
     setPlayheadX(px);
     if (playing) setPlaying(false);
-  };
+  }, [tool, playing]);
+
+  // Hand tool panning  
+  const onContentMouseDown = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    if (!(tool === "hand" || spaceHand)) return;
+    const el = scrollRef.current;
+    if (!el) return;
+    setIsPanning(true);
+    panStart.current = { x: e.clientX, scrollLeft: el.scrollLeft };
+    e.preventDefault();
+  }, [tool, spaceHand]);
 
   // Keyboard shortcuts similar to NLEs
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
+      // Ignore keyboard shortcuts when typing in input fields
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
+        return;
+      }
+      
       if (e.key === " ") {
         setPlaying((p) => !p);
         e.preventDefault();
@@ -443,15 +527,14 @@ export const Timeline = () => {
       window.removeEventListener("keyup", onKeyUp);
     };
   }, [playheadX, setZoom, zoomPercent, ZOOM_MIN_PX, ZOOM_MAX_PX, BASE_ZOOM, FPS, PX_PER_SEC, timelineSec, setPlaying, applyZoomSmart]);
-  // Hand tool panning
-  const onContentMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!(tool === "hand" || spaceHand)) return;
-    const el = scrollRef.current;
-    if (!el) return;
-    setIsPanning(true);
-    panStart.current = { x: e.clientX, scrollLeft: el.scrollLeft };
+  
+  // Playhead drag
+  const onPlayheadMouseDown = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    setDraggingPlayhead(true);
     e.preventDefault();
-  };
+    e.stopPropagation(); // Prevent other handlers
+  }, []);
+
   useEffect(() => {
     if (!isPanning) return;
     const el = scrollRef.current;
@@ -466,18 +549,13 @@ export const Timeline = () => {
       panStart.current = null;
     };
     window.addEventListener("mousemove", onMove);
-    window.addEventListener("mouseup", onUp, { once: true });
+    window.addEventListener("mouseup", onUp);
     return () => {
       window.removeEventListener("mousemove", onMove);
       window.removeEventListener("mouseup", onUp);
     };
   }, [isPanning]);
 
-  // Playhead drag
-  const onPlayheadMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
-    setDraggingPlayhead(true);
-    e.preventDefault();
-  };
   useEffect(() => {
     if (!draggingPlayhead) return;
     const el = scrollRef.current;
@@ -494,7 +572,7 @@ export const Timeline = () => {
     };
     const onUp = () => setDraggingPlayhead(false);
     window.addEventListener("mousemove", onMove);
-    window.addEventListener("mouseup", onUp, { once: true });
+    window.addEventListener("mouseup", onUp);
     return () => {
       window.removeEventListener("mousemove", onMove);
       window.removeEventListener("mouseup", onUp);
@@ -517,6 +595,15 @@ export const Timeline = () => {
       const dt = (ts - lastTsRef.current) / 1000;
       lastTsRef.current = ts;
       const newX = playheadXRef.current + dt * PX_PER_SEC;
+      
+      // Stop playback at timeline end
+      const timelineEndPx = timelineSec * PX_PER_SEC;
+      if (newX >= timelineEndPx) {
+        setPlayheadX(timelineEndPx);
+        setPlaying(false);
+        return;
+      }
+      
       setPlayheadX(newX);
       // Follow playhead near right/left edges
       const el = scrollRef.current;
@@ -527,35 +614,29 @@ export const Timeline = () => {
         if (ctiViewX > rightThreshold) {
           programmaticScrollRef.current = true;
           el.scrollLeft += ctiViewX - rightThreshold;
-          programmaticScrollRef.current = false;
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              programmaticScrollRef.current = false;
+            });
+          });
         } else if (ctiViewX < leftThreshold) {
           programmaticScrollRef.current = true;
           el.scrollLeft -= (leftThreshold - ctiViewX);
-          programmaticScrollRef.current = false;
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              programmaticScrollRef.current = false;
+            });
+          });
         }
       }
       playRaf.current = requestAnimationFrame(step);
     };
     playRaf.current = requestAnimationFrame(step);
     return () => { if (playRaf.current) cancelAnimationFrame(playRaf.current); playRaf.current = null; lastTsRef.current = null; };
-  }, [playing, PX_PER_SEC]);
-
-  const formatTimecode = (seconds: number) => {
-    const fps = FPS;
-    const s = Math.floor(seconds % 60);
-    const m = Math.floor((seconds / 60) % 60);
-    const h = Math.floor(seconds / 3600);
-    const frames = Math.floor((seconds - Math.floor(seconds)) * fps);
-    const pad = (n: number, l = 2) => n.toString().padStart(l, "0");
-    return `${pad(h)}:${pad(m)}:${pad(s)}:${pad(frames)}`;
-  };
+  }, [playing, PX_PER_SEC, timelineSec]);
 
   const currentSeconds = playheadX / PX_PER_SEC;
   const trackHeight = tallTracks ? 96 : 64;
-
-  const btnBase = "w-7 h-7 flex items-center justify-center rounded transition-colors";
-  const btnClass = (active: boolean) =>
-    `${btnBase} ${active ? "text-accent bg-studio-panel-alt" : "text-muted-foreground hover:text-foreground hover:bg-studio-panel-alt"}`;
 
   return (
     <div className="h-full bg-studio-timeline flex flex-col">
@@ -870,7 +951,7 @@ export const Timeline = () => {
                   color="blue"
                   snapping={snapping}
                   gridPx={tickConfig.minorPx}
-                  snapTargets={[playheadX, ...(inPoint != null ? [inPoint] : []), ...(outPoint != null ? [outPoint] : [])]}
+                  snapTargets={snapTargets}
                   onChange={(leftPx, widthPx) => {
                     setClipStartSec(Math.max(0, leftPx / PX_PER_SEC));
                     setClipDurSec(Math.max(0.1, widthPx / PX_PER_SEC));
