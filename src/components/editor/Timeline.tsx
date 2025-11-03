@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState, memo } from "react";
-import { Film, Volume2, Scissors, Hand, Move, Type, Magnet, Link2, Lock, Eye, VolumeX, Headphones, ChevronsUpDown, ArrowLeftToLine, ArrowRightToLine, MousePointer2 } from "lucide-react";
+import { Film, Volume2, Scissors, Hand, Move, Type, Magnet, Link2, Lock, Eye, VolumeX, Headphones, ChevronsUpDown, ArrowLeftToLine, ArrowRightToLine, MousePointer2, ZoomIn, ZoomOut, Maximize2 } from "lucide-react";
 
 
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Slider } from "@/components/ui/slider";
 
 // Draggable/Resizable clip sample with basic snapping
 const ClipSampleInner = ({
@@ -139,8 +140,27 @@ const ClipSample = memo(ClipSampleInner, (prev, next) => {
  * Bottom panel - toolbar, ruler, video tracks, audio tracks
  */
 export const Timeline = () => {
-  const PX_PER_SEC = 192 / 5; // fixed scale (38.4 px/sec)
+  // ============================================================================
+  // ZOOM CONSTANTS & STATE
+  // ============================================================================
   const FPS = 30;
+  const MIN_ZOOM = 0.1; // 10% - very zoomed out (3.84 px/sec)
+  const MAX_ZOOM = 20; // 2000% - very zoomed in (768 px/sec)
+  const DEFAULT_ZOOM = 1; // 100% - default scale (38.4 px/sec)
+  const BASE_PX_PER_SEC = 38.4; // Base pixels per second at 100% zoom
+  
+  const [zoomLevel, setZoomLevel] = useState(DEFAULT_ZOOM); // 0.1 to 20 (logarithmic scale)
+  const PX_PER_SEC = BASE_PX_PER_SEC * zoomLevel; // Dynamic pixels per second based on zoom
+  
+  // Track height zoom (vertical)
+  const MIN_TRACK_HEIGHT = 40;
+  const MAX_TRACK_HEIGHT = 200;
+  const DEFAULT_TRACK_HEIGHT = 64;
+  const [trackHeightZoom, setTrackHeightZoom] = useState(DEFAULT_TRACK_HEIGHT);
+  
+  // ============================================================================
+  // EXISTING STATE
+  // ============================================================================
   const [tool, setTool] = useState<"selection" | "razor" | "hand" | "type">("selection");
   const [snapping, setSnapping] = useState(true);
   const [linked, setLinked] = useState(true);
@@ -236,11 +256,159 @@ export const Timeline = () => {
 
   const TRACK_HEADER_PX = 160; // w-40
 
+  // ============================================================================
+  // ZOOM ANCHOR LOGIC
+  // ============================================================================
+  
+  /**
+   * Determine the best anchor point for zooming:
+   * 1. Playhead if visible in viewport
+   * 2. Mouse cursor position if available
+   * 3. Timeline center as fallback
+   */
+  const getZoomAnchor = useCallback((mouseClientX?: number): { timeSec: number; viewportX: number } => {
+    const el = scrollRef.current;
+    if (!el) return { timeSec: 0, viewportX: TRACK_HEADER_PX };
+    
+    const playheadViewX = TRACK_HEADER_PX - el.scrollLeft + playheadX;
+    const isPlayheadVisible = playheadViewX >= TRACK_HEADER_PX && playheadViewX <= el.clientWidth;
+    
+    // Priority 1: Playhead if visible
+    if (isPlayheadVisible) {
+      const timeSec = playheadX / PX_PER_SEC;
+      return { timeSec, viewportX: playheadViewX };
+    }
+    
+    // Priority 2: Mouse cursor if provided
+    if (mouseClientX !== undefined) {
+      const rect = el.getBoundingClientRect();
+      const viewportX = Math.max(TRACK_HEADER_PX, Math.min(el.clientWidth, mouseClientX - rect.left));
+      const timelineX = viewportX - TRACK_HEADER_PX + el.scrollLeft;
+      const timeSec = timelineX / PX_PER_SEC;
+      return { timeSec, viewportX };
+    }
+    
+    // Priority 3: Timeline center
+    const centerViewportX = TRACK_HEADER_PX + (el.clientWidth - TRACK_HEADER_PX) / 2;
+    const timelineX = centerViewportX - TRACK_HEADER_PX + el.scrollLeft;
+    const timeSec = timelineX / PX_PER_SEC;
+    return { timeSec, viewportX: centerViewportX };
+  }, [playheadX, PX_PER_SEC]);
+  
+  /**
+   * Apply zoom while preserving the anchor point's visual position
+   */
+  const applyZoom = useCallback((newZoom: number, anchorTimeSec: number, anchorViewportX: number) => {
+    const el = scrollRef.current;
+    if (!el) return;
+    
+    // Clamp zoom to valid range
+    const clampedZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, newZoom));
+    setZoomLevel(clampedZoom);
+    
+    // Calculate new timeline position for the anchor time
+    const newPxPerSec = BASE_PX_PER_SEC * clampedZoom;
+    const newTimelineX = anchorTimeSec * newPxPerSec;
+    
+    // Calculate required scroll to keep anchor at same viewport position
+    const newScrollLeft = newTimelineX - (anchorViewportX - TRACK_HEADER_PX);
+    
+    // Apply scroll in next frame to allow zoom state to update
+    requestAnimationFrame(() => {
+      if (scrollRef.current) {
+        programmaticScrollRef.current = true;
+        scrollRef.current.scrollLeft = Math.max(0, newScrollLeft);
+        requestAnimationFrame(() => {
+          programmaticScrollRef.current = false;
+        });
+      }
+    });
+  }, []);
+  
+  /**
+   * Zoom to fit entire timeline in viewport
+   */
+  const zoomToFit = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    
+    const availableWidth = el.clientWidth - TRACK_HEADER_PX;
+    const requiredZoom = (availableWidth / timelineSec) / BASE_PX_PER_SEC;
+    const clampedZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, requiredZoom));
+    
+    setZoomLevel(clampedZoom);
+    requestAnimationFrame(() => {
+      if (scrollRef.current) {
+        programmaticScrollRef.current = true;
+        scrollRef.current.scrollLeft = 0;
+        requestAnimationFrame(() => {
+          programmaticScrollRef.current = false;
+        });
+      }
+    });
+  }, [timelineSec]);
+  
+  /**
+   * Reset zoom to 100%
+   */
+  const resetZoom = useCallback(() => {
+    const anchor = getZoomAnchor();
+    applyZoom(DEFAULT_ZOOM, anchor.timeSec, anchor.viewportX);
+  }, [getZoomAnchor, applyZoom]);
+  
+  /**
+   * Zoom in (increase zoom level)
+   */
+  const zoomIn = useCallback(() => {
+    const anchor = getZoomAnchor();
+    applyZoom(zoomLevel * 1.5, anchor.timeSec, anchor.viewportX);
+  }, [zoomLevel, getZoomAnchor, applyZoom]);
+  
+  /**
+   * Zoom out (decrease zoom level)
+   */
+  const zoomOut = useCallback(() => {
+    const anchor = getZoomAnchor();
+    applyZoom(zoomLevel / 1.5, anchor.timeSec, anchor.viewportX);
+  }, [zoomLevel, getZoomAnchor, applyZoom]);
 
   // Tick spacing based on zoom to keep labels readable
   const tickConfig = useMemo(() => {
     const desiredMajorPx = 120; // target distance between major ticks
-    const candidates = [0.25, 0.5, 1, 2, 5, 10, 15, 30, 60, 120, 300, 600];
+    
+    // At very high zoom (>10x), show frame-level grid
+    if (zoomLevel >= 10) {
+      const frameSec = 1 / FPS;
+      const framePx = frameSec * PX_PER_SEC;
+      
+      // Show every frame if pixels per frame > 20
+      if (framePx >= 20) {
+        return {
+          majorSec: frameSec * 10, // Every 10 frames
+          minorSec: frameSec,
+          majorPx: frameSec * 10 * PX_PER_SEC,
+          minorPx: framePx,
+        };
+      }
+      // Show every 5 frames
+      return {
+        majorSec: frameSec * 30, // Every 30 frames (1 sec at 30fps)
+        minorSec: frameSec * 5,
+        majorPx: frameSec * 30 * PX_PER_SEC,
+        minorPx: frameSec * 5 * PX_PER_SEC,
+      };
+    }
+    
+    // Standard time-based intervals for normal zoom levels
+    const candidates = [
+      1/FPS,      // 1 frame
+      1/FPS * 5,  // 5 frames
+      0.25,       // quarter second
+      0.5,        // half second
+      1,          // 1 second
+      2, 5, 10, 15, 30, 60, 120, 300, 600  // seconds/minutes
+    ];
+    
     let majorSec = candidates[candidates.length - 1];
     for (const c of candidates) {
       if (c * PX_PER_SEC >= desiredMajorPx) { majorSec = c; break; }
@@ -249,19 +417,26 @@ export const Timeline = () => {
     const majorPx = majorSec * PX_PER_SEC;
     const minorPx = minorSec * PX_PER_SEC;
     return { majorSec, minorSec, majorPx, minorPx };
-  }, [PX_PER_SEC]);
+  }, [PX_PER_SEC, zoomLevel, FPS]);
 
   // Generate ticks only for the visible range
   const ticks = useMemo(() => {
     const { majorSec, minorSec } = tickConfig;
     const firstMajor = Math.floor(visibleStartSec / majorSec) * majorSec;
-    const list: Array<{ sec: number; kind: 'major' | 'minor' }> = [];
+    const list: Array<{ sec: number; kind: 'major' | 'minor' | 'frame' }> = [];
+    
+    // At very high zoom, mark frames explicitly
+    const isFrameLevel = zoomLevel >= 10;
+    
     for (let s = firstMajor; s <= visibleEndSec; s += minorSec) {
       const isMajor = Math.abs((s / minorSec) % 4) < 1e-6; // every 4 minors
-      list.push({ sec: s, kind: isMajor ? 'major' : 'minor' });
+      list.push({ 
+        sec: s, 
+        kind: isFrameLevel ? (isMajor ? 'major' : 'frame') : (isMajor ? 'major' : 'minor')
+      });
     }
     return list;
-  }, [tickConfig, visibleStartSec, visibleEndSec]);
+  }, [tickConfig, visibleStartSec, visibleEndSec, zoomLevel]);
 
   // Memoize snap targets to prevent recreation
   const snapTargets = useMemo(() => {
@@ -368,6 +543,27 @@ export const Timeline = () => {
         return;
       }
       const k = e.key.toLowerCase();
+      
+      // Zoom shortcuts
+      if ((k === "=" || k === "+") && (e.ctrlKey || e.metaKey)) {
+        zoomIn();
+        e.preventDefault();
+        return;
+      } else if ((k === "-" || k === "_") && (e.ctrlKey || e.metaKey)) {
+        zoomOut();
+        e.preventDefault();
+        return;
+      } else if (k === "0" && (e.ctrlKey || e.metaKey)) {
+        resetZoom();
+        e.preventDefault();
+        return;
+      } else if (k === "f" && (e.ctrlKey || e.metaKey)) {
+        zoomToFit();
+        e.preventDefault();
+        return;
+      }
+      
+      // Tool shortcuts
       if (k === "v") setTool("selection");
       else if (k === "c") setTool("razor");
       else if (k === "h") setTool("hand");
@@ -395,7 +591,7 @@ export const Timeline = () => {
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("keyup", onKeyUp);
     };
-  }, [playheadX, FPS, PX_PER_SEC, timelineSec, setPlaying]);
+  }, [playheadX, FPS, PX_PER_SEC, timelineSec, setPlaying, zoomIn, zoomOut, resetZoom, zoomToFit]);
   
   // Playhead drag
   const onPlayheadMouseDown = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
@@ -503,7 +699,7 @@ export const Timeline = () => {
   }, [playing, PX_PER_SEC, timelineSec]);
 
   const currentSeconds = playheadX / PX_PER_SEC;
-  const trackHeight = tallTracks ? 96 : 64;
+  const trackHeight = trackHeightZoom; // Use dynamic track height from zoom
 
   return (
     <div className="h-full bg-studio-timeline flex flex-col">
@@ -542,7 +738,55 @@ export const Timeline = () => {
 
           <div className="w-px h-5 bg-border/50 mx-1"></div>
 
-          {/* Zoom always anchors at playhead; no toggle */}
+          {/* Zoom Controls */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button className={btnClass(false)} onClick={zoomOut} aria-label="Zoom Out">
+                <ZoomOut className="w-3.5 h-3.5" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>Zoom Out (Ctrl/⌘ + Scroll)</TooltipContent>
+          </Tooltip>
+
+          {/* Zoom Slider */}
+          <div className="flex items-center gap-2 px-2">
+            <Slider
+              value={[Math.log(zoomLevel) / Math.log(MAX_ZOOM / MIN_ZOOM) * 100]}
+              onValueChange={(values) => {
+                const normalizedValue = values[0] / 100; // 0 to 1
+                const newZoom = MIN_ZOOM * Math.pow(MAX_ZOOM / MIN_ZOOM, normalizedValue);
+                const anchor = getZoomAnchor();
+                applyZoom(newZoom, anchor.timeSec, anchor.viewportX);
+              }}
+              max={100}
+              step={0.1}
+              className="w-24"
+              aria-label="Zoom level"
+            />
+            <span className="text-[10px] text-muted-foreground font-mono w-10 text-right">
+              {Math.round(zoomLevel * 100)}%
+            </span>
+          </div>
+
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button className={btnClass(false)} onClick={zoomIn} aria-label="Zoom In">
+                <ZoomIn className="w-3.5 h-3.5" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>Zoom In (Ctrl/⌘ + Scroll)</TooltipContent>
+          </Tooltip>
+
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button className={btnClass(false)} onClick={zoomToFit} aria-label="Fit Timeline">
+                <Maximize2 className="w-3.5 h-3.5" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>Fit Timeline</TooltipContent>
+          </Tooltip>
+
+          <div className="w-px h-5 bg-border/50 mx-1"></div>
 
           <Tooltip>
             <TooltipTrigger asChild>
@@ -633,6 +877,39 @@ export const Timeline = () => {
           onWheel={(e) => {
             const el = scrollRef.current;
             if (!el) return;
+            
+            // Alt/Option + wheel => vertical track height zoom
+            if (e.altKey) {
+              e.preventDefault();
+              const delta = -e.deltaY; // Invert for natural direction
+              const zoomFactor = 1 + (Math.abs(delta) / 500); // Smooth scaling
+              const newHeight = delta > 0
+                ? trackHeightZoom * zoomFactor
+                : trackHeightZoom / zoomFactor;
+              setTrackHeightZoom(Math.max(MIN_TRACK_HEIGHT, Math.min(MAX_TRACK_HEIGHT, newHeight)));
+              return;
+            }
+            
+            // Ctrl/Cmd + wheel => horizontal timeline zoom
+            if (e.ctrlKey || e.metaKey) {
+              e.preventDefault();
+              
+              // Get current anchor point (prefer playhead, fallback to mouse)
+              const anchor = getZoomAnchor(e.clientX);
+              
+              // Logarithmic zoom with acceleration
+              const delta = -e.deltaY; // Invert for natural direction (up = zoom in)
+              const scrollSpeed = Math.abs(delta);
+              
+              // Accelerated zoom: faster scrolling = bigger zoom jumps
+              const baseZoomFactor = scrollSpeed > 50 ? 1.15 : 1.08;
+              const zoomFactor = delta > 0 ? baseZoomFactor : 1 / baseZoomFactor;
+              
+              const newZoom = zoomLevel * zoomFactor;
+              applyZoom(newZoom, anchor.timeSec, anchor.viewportX);
+              return;
+            }
+            
             // Shift + wheel => horizontal scroll
             if (e.shiftKey) {
               el.scrollLeft += e.deltaY;
@@ -654,15 +931,33 @@ export const Timeline = () => {
             {ticks.map((t, idx) => {
               const left = Math.round(t.sec * PX_PER_SEC);
               const isMajor = t.kind === 'major';
-              const label = isMajor ? formatLabel(t.sec) : null;
+              const isFrame = t.kind === 'frame';
+              
+              // At high zoom, show frame numbers; otherwise show time
+              let label = null;
+              if (isMajor) {
+                if (zoomLevel >= 10) {
+                  // Show frame number
+                  const frameNum = Math.round(t.sec * FPS);
+                  label = `${frameNum}`;
+                } else {
+                  // Show timecode
+                  label = formatLabel(t.sec);
+                }
+              }
+              
               return (
                 <div key={idx} className="absolute bottom-0 z-10" style={{ left }}>
-                  {isMajor && (
+                  {label && (
                     <span className="absolute bottom-[14px] text-[10px] text-muted-foreground font-mono -translate-x-1/2">
                       {label}
                     </span>
                   )}
-                  <div className={`w-px ${isMajor ? 'h-2 bg-muted-foreground' : 'h-1.5 bg-muted-foreground/60'}`}></div>
+                  <div className={`w-px ${
+                    isMajor ? 'h-2 bg-muted-foreground' : 
+                    isFrame ? 'h-1.5 bg-accent/40' : 
+                    'h-1.5 bg-muted-foreground/60'
+                  }`}></div>
                 </div>
               );
             })}
