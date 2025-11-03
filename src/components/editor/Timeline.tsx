@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, memo } from "react";
-import { Film, Volume2, Scissors, Hand, Move, Type, ZoomIn, Magnet, Link2, Lock, Eye, VolumeX, Plus, Minus, Headphones, ChevronsUpDown, ArrowLeftToLine, ArrowRightToLine, MousePointer2 } from "lucide-react";
-import { Slider } from "@/components/ui/slider";
-import { useProject } from "@/context/ProjectContext";
+import { Film, Volume2, Scissors, Hand, Move, Type, Magnet, Link2, Lock, Eye, VolumeX, Headphones, ChevronsUpDown, ArrowLeftToLine, ArrowRightToLine, MousePointer2 } from "lucide-react";
+
+
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 // Draggable/Resizable clip sample with basic snapping
@@ -139,20 +139,9 @@ const ClipSample = memo(ClipSampleInner, (prev, next) => {
  * Bottom panel - toolbar, ruler, video tracks, audio tracks
  */
 export const Timeline = () => {
-  const { data, setZoom } = useProject();
-  const zoom = data.zoom; // px per 5 seconds (base scale)
-  // Zoom mapping 0–500% => px per 5 seconds
-  const BASE_ZOOM = 192; // 100%
-  const ZOOM_MIN_PX = 1; // treat 0% as ~1px per 5s to avoid zero
-  const ZOOM_MAX_PX = BASE_ZOOM * 5; // 500%
-  const zoomPercent = useMemo(() => {
-    const pct = (zoom / BASE_ZOOM) * 100;
-    return Math.max(0, Math.min(500, pct));
-  }, [zoom]);
-  // Derived timeline scale
-  const PX_PER_SEC = useMemo(() => Math.max(zoom, ZOOM_MIN_PX) / 5, [zoom]);
+  const PX_PER_SEC = 192 / 5; // fixed scale (38.4 px/sec)
   const FPS = 30;
-  const [tool, setTool] = useState<"selection" | "razor" | "hand" | "type" | "zoom">("selection");
+  const [tool, setTool] = useState<"selection" | "razor" | "hand" | "type">("selection");
   const [snapping, setSnapping] = useState(true);
   const [linked, setLinked] = useState(true);
   const [audioMute, setAudioMute] = useState(false);
@@ -183,11 +172,12 @@ export const Timeline = () => {
   const [clipStartSec, setClipStartSec] = useState<number>(1);
   const [clipDurSec, setClipDurSec] = useState<number>(3);
   
-  // Auto-extend timeline based on clip positions (minimum 60s)
-  const timelineSec = useMemo(() => {
+  // Timeline duration with auto-extend (starts at 60s)
+  const [timelineSec, setTimelineSec] = useState(60);
+  useEffect(() => {
     const clipEndSec = clipStartSec + clipDurSec;
-    // Timeline extends to fit clips, minimum 60s, with extra padding
-    return Math.max(60, Math.ceil((clipEndSec + 10) / 10) * 10);
+    const desired = Math.max(60, Math.ceil((clipEndSec + 10) / 10) * 10);
+    setTimelineSec((prev) => (desired > prev ? desired : prev));
   }, [clipStartSec, clipDurSec]);
 
   // Visible window (seconds) computed from scroll + container width
@@ -228,8 +218,11 @@ export const Timeline = () => {
       if (pinPlayheadOnScrollRef.current && !programmaticScrollRef.current && delta !== 0) {
         setPlayheadX((x) => Math.max(0, x + delta));
       }
-      // Timeline now auto-extends based on clip positions, no manual extension needed
-      // Keep skimmer under the cursor while scrolling
+      // Auto-extend when scrolling near the right edge
+      const contentEnd = TRACK_HEADER_PX + timelineSec * PX_PER_SEC;
+      if (curr + el.clientWidth > contentEnd - 200) {
+        setTimelineSec((s) => s + 60);
+      }
       if (skimmerEnabled && hoverActive.current && lastPointerClientX.current !== null) {
         const rect = el.getBoundingClientRect();
         const x = lastPointerClientX.current - rect.left;
@@ -249,46 +242,6 @@ export const Timeline = () => {
   const playheadSecRef = useRef(0);
   useEffect(() => { playheadSecRef.current = playheadX / pxPerSecRef.current; }, [playheadX]);
 
-  // Helper: zoom anchored at a screen X within the scroll container
-  // Options:
-  //  - preservePlayhead: keep the current playhead time constant across zoom
-  //  - anchorTimeSec: explicitly set which timeline time should remain under xWithin after zoom
-  const applyZoomAtX = useCallback((newZoom: number, xWithin: number, opts?: { preservePlayhead?: boolean; anchorTimeSec?: number }) => {
-    const el = scrollRef.current;
-    if (!el) { setZoom(newZoom); return; }
-    const oldPxPerSec = PX_PER_SEC;
-    const oldPlayheadSec = playheadX / oldPxPerSec;
-    // Ensure the anchor x is in the scrollable content area (to avoid negative anchor when center < header)
-    const x = Math.max(TRACK_HEADER_PX, Math.min(el.clientWidth, xWithin));
-    const anchorSec = (opts?.anchorTimeSec != null)
-      ? opts.anchorTimeSec
-      : Math.max(0, el.scrollLeft - TRACK_HEADER_PX + x) / oldPxPerSec; // based on current scale
-    
-    // Update zoom
-    setZoom(newZoom);
-    const newPxPerSec = Math.max(newZoom, ZOOM_MIN_PX) / 5;
-    pxPerSecRef.current = newPxPerSec;
-    
-    if (opts?.preservePlayhead) {
-      const newPlayheadX = oldPlayheadSec * newPxPerSec;
-      setPlayheadX(newPlayheadX);
-      playheadSecRef.current = oldPlayheadSec;
-    }
-    
-    // Defer scroll adjustment to next frame for smooth zoom
-    programmaticScrollRef.current = true;
-    requestAnimationFrame(() => {
-      if (!el) return;
-      const desiredScrollLeft = anchorSec * newPxPerSec + TRACK_HEADER_PX - x;
-      const contentWidth = timelineSec * newPxPerSec + TRACK_HEADER_PX;
-      const maxScrollLeft = Math.max(0, contentWidth - el.clientWidth);
-      el.scrollLeft = Math.max(0, Math.min(maxScrollLeft, desiredScrollLeft));
-      
-      requestAnimationFrame(() => { 
-        programmaticScrollRef.current = false; 
-      });
-    });
-  }, [PX_PER_SEC, ZOOM_MIN_PX, scrollRef, setZoom, playheadX]);
 
   // Lock anchor during slider drags so repeated updates reuse the same screen position
   const sliderActiveRef = useRef<boolean>(false);
@@ -469,12 +422,8 @@ export const Timeline = () => {
   // Keyboard shortcuts similar to NLEs
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      // Ignore keyboard shortcuts when typing in input fields
       const target = e.target as HTMLElement;
-      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
-        return;
-      }
-      
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) return;
       if (e.key === " ") {
         setPlaying((p) => !p);
         e.preventDefault();
@@ -484,35 +433,21 @@ export const Timeline = () => {
       if (k === "v") setTool("selection");
       else if (k === "c") setTool("razor");
       else if (k === "h") setTool("hand");
-      else if (k === "z") setTool("zoom");
       else if (k === "t") setTool("type");
       else if (k === "s") setSnapping((s) => !s);
       else if (k === "i") setInPoint(playheadX);
       else if (k === "o") setOutPoint(playheadX);
-      // Playhead nudge by frame
       else if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
         const frames = e.shiftKey ? 5 : 1;
         const deltaPx = (frames / FPS) * PX_PER_SEC;
         setPlayheadX((x) => Math.max(0, e.key === "ArrowLeft" ? x - deltaPx : x + deltaPx));
         e.preventDefault();
-      }
-      else if (e.key === "Home") {
+      } else if (e.key === "Home") {
         setPlayheadX(0);
         e.preventDefault();
-      }
-      else if (e.key === "End") {
+      } else if (e.key === "End") {
         setPlayheadX(timelineSec * PX_PER_SEC);
         e.preventDefault();
-      }
-      else if (e.key === "+" || e.key === "=") {
-        const nextPct = Math.min(500, zoomPercent + 10);
-        const targetZoom = Math.max(ZOOM_MIN_PX, Math.min(ZOOM_MAX_PX, (nextPct / 100) * BASE_ZOOM));
-        applyZoomSmart(targetZoom);
-      }
-      else if (e.key === "-") {
-        const nextPct = Math.max(0, zoomPercent - 10);
-        const targetZoom = Math.max(ZOOM_MIN_PX, Math.min(ZOOM_MAX_PX, (nextPct / 100) * BASE_ZOOM));
-        applyZoomSmart(targetZoom);
       }
     };
     const onKeyUp = (_e: KeyboardEvent) => {};
@@ -522,7 +457,7 @@ export const Timeline = () => {
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("keyup", onKeyUp);
     };
-  }, [playheadX, setZoom, zoomPercent, ZOOM_MIN_PX, ZOOM_MAX_PX, BASE_ZOOM, FPS, PX_PER_SEC, timelineSec, setPlaying, applyZoomSmart]);
+  }, [playheadX, FPS, PX_PER_SEC, timelineSec, setPlaying]);
   
   // Playhead drag
   const onPlayheadMouseDown = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
@@ -592,12 +527,10 @@ export const Timeline = () => {
       lastTsRef.current = ts;
       const newX = playheadXRef.current + dt * PX_PER_SEC;
       
-      // Stop playback at timeline end
+      // Auto-extend at end instead of stopping
       const timelineEndPx = timelineSec * PX_PER_SEC;
-      if (newX >= timelineEndPx) {
-        setPlayheadX(timelineEndPx);
-        setPlaying(false);
-        return;
+      if (newX >= timelineEndPx - 1) {
+        setTimelineSec((s) => s + 60);
       }
       
       setPlayheadX(newX);
@@ -758,48 +691,6 @@ export const Timeline = () => {
           </Tooltip>
         </div>
 
-        {/* Zoom Controls */}
-        <div className="flex items-center gap-2">
-          <button
-            className="w-7 h-7 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-studio-panel-alt rounded transition-colors"
-            onClick={() => {
-              const nextPct = Math.max(0, zoomPercent - 10);
-              const targetZoom = Math.max(ZOOM_MIN_PX, Math.min(ZOOM_MAX_PX, (nextPct / 100) * BASE_ZOOM));
-              applyZoomSmart(targetZoom);
-            }}
-            aria-label="Zoom Out"
-          >
-            <Minus className="w-3.5 h-3.5" />
-          </button>
-          <div className="w-72 px-1 flex items-center gap-2">
-            <Slider
-              value={[zoomPercent]}
-              min={0}
-              max={500}
-              step={1}
-              onPointerDown={() => { sliderActiveRef.current = true; zoomAnchorLockRef.current = null; }}
-              onPointerUp={() => { sliderActiveRef.current = false; zoomAnchorLockRef.current = null; }}
-              onValueCommit={() => { sliderActiveRef.current = false; zoomAnchorLockRef.current = null; }}
-              onValueChange={(v) => {
-                const pct = v[0];
-                const targetZoom = Math.max(ZOOM_MIN_PX, Math.min(ZOOM_MAX_PX, (pct / 100) * BASE_ZOOM));
-                applyZoomSmart(targetZoom);
-              }}
-            />
-            <span className="w-12 text-right tabular-nums text-[11px] text-muted-foreground">{Math.round(zoomPercent)}%</span>
-          </div>
-          <button
-            className="w-7 h-7 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-studio-panel-alt rounded transition-colors"
-            onClick={() => {
-              const nextPct = Math.min(500, zoomPercent + 10);
-              const targetZoom = Math.max(ZOOM_MIN_PX, Math.min(ZOOM_MAX_PX, (nextPct / 100) * BASE_ZOOM));
-              applyZoomSmart(targetZoom);
-            }}
-            aria-label="Zoom In"
-          >
-            <Plus className="w-3.5 h-3.5" />
-          </button>
-        </div>
       </div>
       
       {/* Timeline Content */}
@@ -813,20 +704,6 @@ export const Timeline = () => {
           onWheel={(e) => {
             const el = scrollRef.current;
             if (!el) return;
-            // Ctrl/Cmd + wheel => zoom anchored at playhead (re-centers if off-screen)
-            if (e.ctrlKey || e.metaKey) {
-              e.preventDefault();
-              // wheel: deltaY > 0 => zoom out, < 0 => zoom in
-              const factor = Math.exp(-e.deltaY * 0.0015);
-              const raw = zoom * factor;
-              const newZoom = Math.min(ZOOM_MAX_PX, Math.max(ZOOM_MIN_PX, raw));
-              // Anchor wheel zoom to mouse cursor like Premiere Pro
-              const rect2 = el.getBoundingClientRect();
-              const xWithin = Math.max(TRACK_HEADER_PX, Math.min(el.clientWidth, e.clientX - rect2.left));
-              const anchorTimeSec = Math.max(0, el.scrollLeft - TRACK_HEADER_PX + xWithin) / PX_PER_SEC;
-              applyZoomAtX(newZoom, xWithin, { preservePlayhead: false, anchorTimeSec });
-              return;
-            }
             // Shift + wheel => horizontal scroll
             if (e.shiftKey) {
               el.scrollLeft += e.deltaY;
@@ -841,9 +718,9 @@ export const Timeline = () => {
           onMouseMove={handleRulerMove}
           onMouseLeave={handleRulerLeave}
         >
-          {/* Track header spacer (scrolls with content) */}
+          // Track header spacer (scrolls with content)
           <div className="w-40 h-full shrink-0 bg-studio-panel border-r border-border"></div>
-          {/* Timeline canvas for ticks */}
+          // Timeline canvas for ticks
           <div className="relative bg-studio-panel" style={{ width: `${timelineWidthPx}px`, height: '100%' }}>
             {ticks.map((t, idx) => {
               const left = Math.round(t.sec * PX_PER_SEC);
@@ -1024,7 +901,6 @@ export const Timeline = () => {
   <div className="h-6 bg-studio-panel-alt shrink-0 px-3 flex items-center justify-between text-[11px] text-muted-foreground font-mono">
         <span>Ready</span>
         <span>Timecode: {formatTimecode(currentSeconds)}</span>
-  <span>Zoom: {Math.round(zoomPercent)}%</span>
       </div>
     </div>
   );
