@@ -79,7 +79,7 @@ export const TimelineTrackHeader: React.FC<TimelineTrackHeaderProps> = ({
         <Button
           variant="ghost"
           size="icon"
-          className="w-6 h-6 shrink-0 hover:bg-accent/10"
+          className="w-8 h-8 shrink-0 hover:bg-accent/10"
           onClick={(e) => {
             stopPropagation(e);
             onToggleExpand(id);
@@ -88,9 +88,9 @@ export const TimelineTrackHeader: React.FC<TimelineTrackHeaderProps> = ({
         >
           <AnimatedIcon>
             {isExpanded ? (
-              <ChevronDown className="w-3.5 h-3.5 animated-gradient-stroke" />
+              <ChevronDown className="w-4 h-4 animated-gradient-stroke" />
             ) : (
-              <ChevronRight className="w-3.5 h-3.5 animated-gradient-stroke" />
+              <ChevronRight className="w-4 h-4 animated-gradient-stroke" />
             )}
           </AnimatedIcon>
         </Button>
@@ -113,15 +113,15 @@ export const TimelineTrackHeader: React.FC<TimelineTrackHeaderProps> = ({
           onPressedChange={() => onToggleLock(id)}
           aria-label={isLocked ? "Unlock track" : "Lock track"}
           className={cn(
-            "w-7 h-7 hover:bg-accent/10 data-[state=on]:bg-accent/20",
+            "w-8 h-8 hover:bg-accent/10 data-[state=on]:bg-accent/20",
             isLocked && "text-amber-400"
           )}
         >
           <AnimatedIcon>
             {isLocked ? (
-              <Lock className="w-3.5 h-3.5" />
+              <Lock className="w-4 h-4" />
             ) : (
-              <Unlock className="w-3.5 h-3.5 opacity-60 group-hover:opacity-100 transition-opacity" />
+              <Unlock className="w-4 h-4 opacity-60 group-hover:opacity-100 transition-opacity" />
             )}
           </AnimatedIcon>
         </Toggle>
@@ -134,15 +134,15 @@ export const TimelineTrackHeader: React.FC<TimelineTrackHeaderProps> = ({
             onPressedChange={() => onToggleVisibility(id)}
             aria-label={isVisible ? "Hide track" : "Show track"}
             className={cn(
-              "w-7 h-7 hover:bg-accent/10 data-[state=on]:bg-accent/20",
+              "w-8 h-8 hover:bg-accent/10 data-[state=on]:bg-accent/20",
               !isVisible && "text-red-400"
             )}
           >
             <AnimatedIcon>
               {!isVisible ? (
-                <EyeOff className="w-3.5 h-3.5" />
+                <EyeOff className="w-4 h-4" />
               ) : (
-                <Eye className="w-3.5 h-3.5 opacity-60 group-hover:opacity-100 transition-opacity" />
+                <Eye className="w-4 h-4 opacity-60 group-hover:opacity-100 transition-opacity" />
               )}
             </AnimatedIcon>
           </Toggle>
@@ -156,15 +156,15 @@ export const TimelineTrackHeader: React.FC<TimelineTrackHeaderProps> = ({
             onPressedChange={() => onToggleMute(id)}
             aria-label={isMuted ? "Unmute track" : "Mute track"}
             className={cn(
-              "w-7 h-7 hover:bg-accent/10 data-[state=on]:bg-accent/20",
+              "w-8 h-8 hover:bg-accent/10 data-[state=on]:bg-accent/20",
               isMuted && "text-red-400"
             )}
           >
             <AnimatedIcon>
               {isMuted ? (
-                <VolumeX className="w-3.5 h-3.5" />
+                <VolumeX className="w-4 h-4" />
               ) : (
-                <Volume2 className="w-3.5 h-3.5 opacity-60 group-hover:opacity-100 transition-opacity" />
+                <Volume2 className="w-4 h-4 opacity-60 group-hover:opacity-100 transition-opacity" />
               )}
             </AnimatedIcon>
           </Toggle>
@@ -177,14 +177,14 @@ export const TimelineTrackHeader: React.FC<TimelineTrackHeaderProps> = ({
           onPressedChange={() => onToggleTarget(id)}
           aria-label={isTargeted ? "Untarget track" : "Target track"}
           className={cn(
-            "w-7 h-7 hover:bg-accent/10 transition-all",
+            "w-8 h-8 hover:bg-accent/10 transition-all",
             isTargeted
               ? "bg-accent text-accent-foreground data-[state=on]:bg-accent"
               : "data-[state=off]:opacity-60 hover:opacity-100"
           )}
         >
           <AnimatedIcon>
-            <Target className="w-3.5 h-3.5" />
+            <Target className="w-4 h-4" />
           </AnimatedIcon>
         </Toggle>
       </div>
