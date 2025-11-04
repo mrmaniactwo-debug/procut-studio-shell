@@ -90,8 +90,8 @@ export const Timeline = () => {
           </div>
 
           <div className="relative min-h-[200px] bg-studio-timeline">
-            <div className="absolute top-0 bottom-0 w-[2px] bg-accent z-10 pointer-events-none shadow-[0_0_8px_hsl(var(--accent))]" style={{ left: `${playheadPercent}%` }}>
-              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3 h-3 bg-accent shadow-[0_0_6px_hsl(var(--accent))]" style={{ clipPath: "polygon(50% 0%, 0% 100%, 100% 100%)" }} />
+            <div className="absolute top-0 bottom-0 w-[2px] animated-gradient-bg z-10 pointer-events-none shadow-[0_0_12px_rgba(52,211,153,0.5)]" style={{ left: `${playheadPercent}%` }}>
+              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3 h-3 animated-gradient-bg shadow-[0_0_8px_rgba(52,211,153,0.5)]" style={{ clipPath: "polygon(50% 0%, 0% 100%, 100% 100%)" }} />
             </div>
             <div className="h-16 border-b border-border/20 flex items-center px-2 bg-studio-panel/30">
               <span className="text-xs text-muted-foreground font-medium">V1</span>
