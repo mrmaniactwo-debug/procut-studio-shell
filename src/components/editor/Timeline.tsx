@@ -117,24 +117,77 @@ export const Timeline = () => {
 
       <div className="flex-1 overflow-auto" ref={timelineRef}>
         <div className="relative min-w-full" style={{ width: `${timelineDuration * 20}px` }}>
-          <div className="h-6 bg-studio-panel border-b border-border relative">
+          {/* Enhanced Ruler */}
+          <div className="h-8 bg-studio-panel border-b border-border relative">
+            {/* Grid lines every second */}
             {Array.from({ length: Math.ceil(timelineDuration) + 1 }).map((_, i) => (
-              <div key={i} className="absolute top-0 h-full flex items-center" style={{ left: `${(i / timelineDuration) * 100}%` }}>
-                <div className="w-px h-2 bg-border" />
-                <span className="text-[9px] text-muted-foreground ml-1 font-mono">{formatTimecode(i)}</span>
-              </div>
+              <div
+                key={`grid-${i}`}
+                className="absolute top-0 bottom-0 w-px bg-border/30"
+                style={{ left: `${(i / timelineDuration) * 100}%` }}
+              />
             ))}
+            
+            {/* Major markers every 5 seconds */}
+            {Array.from({ length: Math.ceil(timelineDuration / 5) + 1 }).map((_, i) => {
+              const seconds = i * 5;
+              return (
+                <div
+                  key={`marker-${i}`}
+                  className="absolute top-0 flex flex-col items-start"
+                  style={{ left: `${(seconds / timelineDuration) * 100}%` }}
+                >
+                  <div className="w-px h-3 bg-border" />
+                  <span className="text-[10px] text-muted-foreground ml-1 font-mono tracking-wider tabular-nums">
+                    {formatTimecode(seconds)}
+                  </span>
+                </div>
+              );
+            })}
           </div>
 
+          {/* Track Area */}
           <div className="relative min-h-[200px] bg-studio-timeline">
-            <div className="absolute top-0 bottom-0 w-[2px] animated-gradient-bg z-10 pointer-events-none shadow-[0_0_12px_rgba(52,211,153,0.5)]" style={{ left: `${playheadPercent}%` }}>
-              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3 h-3 animated-gradient-bg shadow-[0_0_8px_rgba(52,211,153,0.5)]" style={{ clipPath: "polygon(50% 0%, 0% 100%, 100% 100%)" }} />
+            {/* Vertical grid lines */}
+            {Array.from({ length: Math.ceil(timelineDuration) + 1 }).map((_, i) => (
+              <div
+                key={`track-grid-${i}`}
+                className="absolute top-0 bottom-0 w-px bg-border/10"
+                style={{ left: `${(i / timelineDuration) * 100}%` }}
+              />
+            ))}
+            
+            {/* Playhead */}
+            <div 
+              className="absolute top-0 bottom-0 w-[2px] animated-gradient-bg z-20 pointer-events-none shadow-[0_0_12px_rgba(52,211,153,0.5)]" 
+              style={{ left: `${playheadPercent}%` }}
+            >
+              <div 
+                className="absolute top-0 left-1/2 -translate-x-1/2 w-4 h-4 animated-gradient-bg shadow-[0_0_10px_rgba(52,211,153,0.6)]" 
+                style={{ clipPath: "polygon(50% 0%, 0% 100%, 100% 100%)" }} 
+              />
             </div>
-            <div className="h-16 border-b border-border/20 flex items-center px-2 bg-studio-panel/30">
-              <span className="text-xs text-muted-foreground font-medium">V1</span>
+
+            {/* Video Track */}
+            <div className="h-20 border-b border-border/30 flex items-center gap-2 px-3 bg-studio-panel/20 hover:bg-studio-panel/30 transition-colors">
+              <span className="text-xs font-semibold animated-gradient-text min-w-[24px]">V1</span>
+              <div className="flex-1 h-12 border border-border/40 rounded bg-studio-panel/40" />
             </div>
-            <div className="h-16 border-b border-border/20 flex items-center px-2 bg-studio-panel/30">
-              <span className="text-xs text-muted-foreground font-medium">A1</span>
+
+            {/* Audio Track */}
+            <div className="h-20 border-b border-border/30 flex items-center gap-2 px-3 bg-studio-panel/20 hover:bg-studio-panel/30 transition-colors">
+              <span className="text-xs font-semibold animated-gradient-text min-w-[24px]">A1</span>
+              <div className="flex-1 h-12 border border-border/40 rounded bg-studio-panel/40" />
+            </div>
+
+            {/* Additional Video Track */}
+            <div className="h-20 border-b border-border/30 flex items-center gap-2 px-3 bg-studio-panel/20 hover:bg-studio-panel/30 transition-colors">
+              <span className="text-xs font-semibold text-muted-foreground/50 min-w-[24px]">V2</span>
+            </div>
+
+            {/* Additional Audio Track */}
+            <div className="h-20 border-b border-border/30 flex items-center gap-2 px-3 bg-studio-panel/20 hover:bg-studio-panel/30 transition-colors">
+              <span className="text-xs font-semibold text-muted-foreground/50 min-w-[24px]">A2</span>
             </div>
           </div>
         </div>
