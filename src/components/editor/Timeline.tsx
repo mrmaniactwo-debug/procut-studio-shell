@@ -55,26 +55,63 @@ export const Timeline = () => {
 
   return (
     <div className="h-full bg-studio-timeline flex flex-col">
-      <div className="h-10 px-3 flex items-center justify-between border-b border-border bg-studio-panel-alt">
-        <div className="flex items-center gap-3">
-          <h2 className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Timeline</h2>
-          <div className="flex items-center gap-1 ml-4">
-            <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={skipToStart}>
-              <SkipBack className="h-3.5 w-3.5" />
+      <div className="h-12 px-4 flex items-center justify-between border-b border-border bg-studio-panel-alt">
+        <div className="flex items-center gap-4">
+          <h2 className="text-[10px] font-semibold animated-gradient-text uppercase tracking-wider">Timeline</h2>
+          
+          <div className="flex items-center gap-1.5 ml-2">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="h-8 w-8 p-0 hover:bg-accent/10 transition-colors" 
+              onClick={skipToStart}
+            >
+              <SkipBack className="h-4 w-4 animated-gradient-stroke" />
             </Button>
-            <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={togglePlayPause}>
-              {isPlaying ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="h-8 w-8 p-0 hover:bg-accent/10 transition-colors" 
+              onClick={togglePlayPause}
+            >
+              {isPlaying ? (
+                <Pause className="h-4 w-4 animated-gradient-stroke" />
+              ) : (
+                <Play className="h-4 w-4 animated-gradient-stroke" />
+              )}
             </Button>
-            <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={skipToEnd}>
-              <SkipForward className="h-3.5 w-3.5" />
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="h-8 w-8 p-0 hover:bg-accent/10 transition-colors" 
+              onClick={skipToEnd}
+            >
+              <SkipForward className="h-4 w-4 animated-gradient-stroke" />
             </Button>
           </div>
-          <div className="text-xs font-mono text-foreground ml-2">{formatTimecode(playheadPosition)}</div>
+
+          <div className="flex items-center gap-1 ml-3 px-3 py-1 bg-studio-panel rounded border border-border/50">
+            <span className="text-xs font-mono tracking-wider text-foreground tabular-nums">
+              {formatTimecode(playheadPosition)}
+            </span>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="text-[10px] text-muted-foreground">Duration:</span>
-          <Slider value={[timelineDuration]} onValueChange={(val) => setTimelineDuration(val[0])} min={60} max={600} step={10} className="w-32" />
-          <span className="text-xs font-mono text-foreground min-w-[60px]">{formatTimecode(timelineDuration)}</span>
+        
+        <div className="flex items-center gap-3">
+          <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Duration</span>
+          <Slider 
+            value={[timelineDuration]} 
+            onValueChange={(val) => setTimelineDuration(val[0])} 
+            min={60} 
+            max={600} 
+            step={10} 
+            className="w-40" 
+          />
+          <div className="flex items-center gap-1 px-3 py-1 bg-studio-panel rounded border border-border/50 min-w-[100px] justify-center">
+            <span className="text-xs font-mono tracking-wider text-foreground tabular-nums">
+              {formatTimecode(timelineDuration)}
+            </span>
+          </div>
         </div>
       </div>
 
