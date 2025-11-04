@@ -54,8 +54,8 @@ export const Timeline = () => {
   const playheadPercent = (playheadPosition / timelineDuration) * 100;
 
   return (
-    <div className="h-full bg-studio-panel flex flex-col">
-      <div className="h-10 px-3 flex items-center justify-between border-b border-border/50 bg-studio-panel-alt">
+    <div className="h-full bg-studio-timeline flex flex-col">
+      <div className="h-10 px-3 flex items-center justify-between border-b border-border bg-studio-panel-alt">
         <div className="flex items-center gap-3">
           <h2 className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Timeline</h2>
           <div className="flex items-center gap-1 ml-4">
@@ -80,7 +80,7 @@ export const Timeline = () => {
 
       <div className="flex-1 overflow-auto" ref={timelineRef}>
         <div className="relative min-w-full" style={{ width: `${timelineDuration * 20}px` }}>
-          <div className="h-6 bg-studio-panel-alt border-b border-border/50 relative">
+          <div className="h-6 bg-studio-panel border-b border-border relative">
             {Array.from({ length: Math.ceil(timelineDuration) + 1 }).map((_, i) => (
               <div key={i} className="absolute top-0 h-full flex items-center" style={{ left: `${(i / timelineDuration) * 100}%` }}>
                 <div className="w-px h-2 bg-border" />
@@ -89,15 +89,15 @@ export const Timeline = () => {
             ))}
           </div>
 
-          <div className="relative min-h-[200px] bg-studio-main">
-            <div className="absolute top-0 bottom-0 w-px bg-accent z-10 pointer-events-none" style={{ left: `${playheadPercent}%` }}>
-              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3 h-3 bg-accent" style={{ clipPath: "polygon(50% 0%, 0% 100%, 100% 100%)" }} />
+          <div className="relative min-h-[200px] bg-studio-timeline">
+            <div className="absolute top-0 bottom-0 w-[2px] bg-accent z-10 pointer-events-none shadow-[0_0_8px_hsl(var(--accent))]" style={{ left: `${playheadPercent}%` }}>
+              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3 h-3 bg-accent shadow-[0_0_6px_hsl(var(--accent))]" style={{ clipPath: "polygon(50% 0%, 0% 100%, 100% 100%)" }} />
             </div>
-            <div className="h-16 border-b border-border/30 flex items-center px-2">
-              <span className="text-xs text-muted-foreground">V1</span>
+            <div className="h-16 border-b border-border/20 flex items-center px-2 bg-studio-panel/30">
+              <span className="text-xs text-muted-foreground font-medium">V1</span>
             </div>
-            <div className="h-16 border-b border-border/30 flex items-center px-2">
-              <span className="text-xs text-muted-foreground">A1</span>
+            <div className="h-16 border-b border-border/20 flex items-center px-2 bg-studio-panel/30">
+              <span className="text-xs text-muted-foreground font-medium">A1</span>
             </div>
           </div>
         </div>
