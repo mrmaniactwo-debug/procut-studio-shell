@@ -168,24 +168,26 @@ export const Timeline = () => {
               />
             </div>
 
-            {/* Video Track */}
-            <div className="h-20 border-b border-border/30 flex items-center gap-2 px-3 bg-studio-panel/20 hover:bg-studio-panel/30 transition-colors">
-              <span className="text-xs font-semibold animated-gradient-text min-w-[24px]">V1</span>
-              <div className="flex-1 h-12 border border-border/40 rounded bg-studio-panel/40" />
-            </div>
-
-            {/* Audio Track */}
-            <div className="h-20 border-b border-border/30 flex items-center gap-2 px-3 bg-studio-panel/20 hover:bg-studio-panel/30 transition-colors">
-              <span className="text-xs font-semibold animated-gradient-text min-w-[24px]">A1</span>
-              <div className="flex-1 h-12 border border-border/40 rounded bg-studio-panel/40" />
-            </div>
-
-            {/* Additional Video Track */}
+            {/* Video Tracks Section */}
+            {/* V2 - Additional Video Track */}
             <div className="h-20 border-b border-border/30 flex items-center gap-2 px-3 bg-studio-panel/20 hover:bg-studio-panel/30 transition-colors">
               <span className="text-xs font-semibold text-muted-foreground/50 min-w-[24px]">V2</span>
             </div>
 
-            {/* Additional Audio Track */}
+            {/* V1 - Main Video Track */}
+            <div className="h-20 border-b border-border/20 flex items-center gap-2 px-3 bg-studio-panel/20 hover:bg-studio-panel/30 transition-colors">
+              <span className="text-xs font-semibold animated-gradient-text min-w-[24px]">V1</span>
+              <div className="flex-1 h-12 border border-border/40 rounded bg-studio-panel/40" />
+            </div>
+
+            {/* Audio Tracks Section */}
+            {/* A1 - Main Audio Track */}
+            <div className="h-20 border-b border-border/20 flex items-center gap-2 px-3 bg-studio-panel/20 hover:bg-studio-panel/30 transition-colors">
+              <span className="text-xs font-semibold animated-gradient-text min-w-[24px]">A1</span>
+              <div className="flex-1 h-12 border border-border/40 rounded bg-studio-panel/40" />
+            </div>
+
+            {/* A2 - Additional Audio Track */}
             <div className="h-20 border-b border-border/30 flex items-center gap-2 px-3 bg-studio-panel/20 hover:bg-studio-panel/30 transition-colors">
               <span className="text-xs font-semibold text-muted-foreground/50 min-w-[24px]">A2</span>
             </div>
