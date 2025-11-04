@@ -1,9 +1,10 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Play, Pause, SkipBack, SkipForward } from "lucide-react";
 import { TimelineTrackHeader } from "./timeline/TimelineTrackHeader";
 import { cn } from "@/lib/utils";
+import { useEditor } from "@/context/EditorContext";
 
 type Track = {
   id: string;
@@ -17,20 +18,31 @@ type Track = {
 };
 
 export const Timeline = () => {
+  const FPS = 30;
+  const SHIFT_STEP_FRAMES = 10; // can be made configurable later
+  const SNAP_THRESHOLD_SEC = 0.2;
+
+  const { timelinePlayheadSec, setTimelinePlayheadSec, setTimelineDurationSec } = useEditor();
+
   const [isPlaying, setIsPlaying] = useState(false);
   const [playheadPosition, setPlayheadPosition] = useState(0);
   const [timelineDuration, setTimelineDuration] = useState(60);
   const timelineRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
   const playheadRef = useRef<number | null>(null);
+  const isDraggingRef = useRef(false);
+  const [snapEnabled, setSnapEnabled] = useState<boolean>(false);
+  const [hoverInfo, setHoverInfo] = useState<{ x: number; time: number; visible: boolean } | null>(null);
+  const cutPoints = useMemo<number[]>(() => [5, 12.5, 20, 27.3, 35, 42.2, 50], []);
 
   const [videoTracks, setVideoTracks] = useState<Track[]>([
-    { id: "v2", label: "V2", type: "video", isLocked: true, isVisible: false, isMuted: false, isTargeted: false, isExpanded: false },
-    { id: "v1", label: "V1", type: "video", isLocked: false, isVisible: true, isMuted: false, isTargeted: true, isExpanded: true },
+    { id: "v2", label: "V2", type: "video", isLocked: false, isVisible: true, isMuted: false, isTargeted: false, isExpanded: false },
+    { id: "v1", label: "V1", type: "video", isLocked: false, isVisible: true, isMuted: false, isTargeted: false, isExpanded: true },
   ]);
 
   const [audioTracks, setAudioTracks] = useState<Track[]>([
-    { id: "a1", label: "A1", type: "audio", isLocked: false, isVisible: true, isMuted: false, isTargeted: true, isExpanded: true },
-    { id: "a2", label: "A2", type: "audio", isLocked: false, isVisible: true, isMuted: true, isTargeted: false, isExpanded: false },
+    { id: "a1", label: "A1", type: "audio", isLocked: false, isVisible: true, isMuted: false, isTargeted: false, isExpanded: true },
+    { id: "a2", label: "A2", type: "audio", isLocked: false, isVisible: true, isMuted: false, isTargeted: false, isExpanded: false },
   ]);
 
   const [selectedTrack, setSelectedTrack] = useState<string | null>("v1");
@@ -73,7 +85,7 @@ export const Timeline = () => {
     }
   };
 
-  const togglePlayPause = () => setIsPlaying(!isPlaying);
+  const togglePlayPause = () => setIsPlaying((p) => !p);
   const skipToStart = () => setPlayheadPosition(0);
   const skipToEnd = () => setPlayheadPosition(timelineDuration);
 
@@ -86,6 +98,118 @@ export const Timeline = () => {
   };
 
   const playheadPercent = (playheadPosition / timelineDuration) * 100;
+
+  // Publish timeline state to shared context
+  useEffect(() => {
+    setTimelinePlayheadSec(playheadPosition);
+  }, [playheadPosition, setTimelinePlayheadSec]);
+
+  useEffect(() => {
+    setTimelineDurationSec(timelineDuration);
+  }, [timelineDuration, setTimelineDurationSec]);
+
+  const getSecondsFromClientX = useCallback(
+    (clientX: number) => {
+      const scroller = timelineRef.current;
+      const content = contentRef.current;
+      if (!scroller || !content) return 0;
+      const rect = scroller.getBoundingClientRect();
+      const scrollLeft = scroller.scrollLeft;
+      const totalWidth = content.scrollWidth || content.getBoundingClientRect().width;
+      const relativeX = Math.max(0, Math.min(clientX - rect.left + scrollLeft, totalWidth));
+      const secs = (relativeX / totalWidth) * timelineDuration;
+      return Math.max(0, Math.min(secs, timelineDuration));
+    },
+    [timelineDuration]
+  );
+
+  const applySnap = useCallback(
+    (seconds: number, opts: { shiftKey?: boolean } = {}) => {
+      const shouldSnap = opts.shiftKey || snapEnabled;
+      if (!shouldSnap) return seconds;
+      let target = seconds;
+      for (const cut of cutPoints) {
+        if (Math.abs(cut - seconds) <= SNAP_THRESHOLD_SEC) {
+          target = cut;
+          break;
+        }
+      }
+      // Also snap to start/end
+      if (Math.abs(0 - seconds) <= SNAP_THRESHOLD_SEC) target = 0;
+      if (Math.abs(timelineDuration - seconds) <= SNAP_THRESHOLD_SEC) target = timelineDuration;
+      return target;
+    },
+    [cutPoints, snapEnabled, timelineDuration]
+  );
+
+  // Mouse interactions: click/drag to scrub
+  useEffect(() => {
+    const onMove = (e: MouseEvent) => {
+      if (!isDraggingRef.current) return;
+      const secs = getSecondsFromClientX(e.clientX);
+      setPlayheadPosition(applySnap(secs, { shiftKey: e.shiftKey }));
+    };
+    const onUp = () => {
+      isDraggingRef.current = false;
+      document.body.style.userSelect = "";
+    };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+    return () => {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    };
+  }, [applySnap, getSecondsFromClientX]);
+
+  const onScrubStart = (e: React.MouseEvent) => {
+    if (e.button !== 0) return;
+    const secs = getSecondsFromClientX(e.clientX);
+    setIsPlaying(false);
+    setPlayheadPosition(applySnap(secs, { shiftKey: e.shiftKey }));
+    isDraggingRef.current = true;
+    document.body.style.userSelect = "none";
+  };
+
+  const onRulerMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const secs = getSecondsFromClientX(e.clientX);
+    setHoverInfo({ x: e.clientX, time: secs, visible: true });
+  };
+
+  const onRulerLeave = () => setHoverInfo(null);
+
+  // Keyboard shortcuts: Space (play/pause), Left/Right (1 frame), Shift+Left/Right (N frames)
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName?.toLowerCase();
+      if (tag === 'input' || tag === 'textarea' || (e.target as HTMLElement)?.isContentEditable) return;
+      if (e.code === 'Space') {
+        e.preventDefault();
+        togglePlayPause();
+      } else if (e.code === 'ArrowLeft' || e.code === 'ArrowRight') {
+        e.preventDefault();
+        const dir = e.code === 'ArrowRight' ? 1 : -1;
+        const frames = e.shiftKey ? SHIFT_STEP_FRAMES : 1;
+        const delta = (frames / FPS) * dir;
+        setPlayheadPosition((p) => Math.max(0, Math.min(timelineDuration, p + delta)));
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [FPS, SHIFT_STEP_FRAMES, timelineDuration]);
+
+  // Keep playhead visible when zoom (duration) changes
+  useEffect(() => {
+    const scroller = timelineRef.current;
+    if (!scroller) return;
+    const widthPx = timelineDuration * 20;
+    const playheadPx = (playheadPosition / timelineDuration) * widthPx;
+    const left = scroller.scrollLeft;
+    const right = left + scroller.clientWidth;
+    if (playheadPx < left + 40 || playheadPx > right - 40) {
+      const target = Math.max(0, playheadPx - scroller.clientWidth * 0.2);
+      scroller.scrollTo({ left: target, behavior: 'instant' as ScrollBehavior });
+    }
+  }, [timelineDuration, playheadPosition]);
 
   const renderTracks = (tracks: Track[], type: 'video' | 'audio') => {
     return tracks.map(track => (
@@ -131,6 +255,16 @@ export const Timeline = () => {
             <span className="text-xs font-mono tracking-wider text-foreground tabular-nums">
               {formatTimecode(playheadPosition)}
             </span>
+          </div>
+          <div className="flex items-center ml-3">
+            <Button
+              variant={snapEnabled ? "default" : "ghost"}
+              size="sm"
+              className="h-8 px-3 hover:bg-accent/10"
+              onClick={() => setSnapEnabled((s) => !s)}
+            >
+              <span className="text-[10px] tracking-wider">Snap</span>
+            </Button>
           </div>
         </div>
         <div className="flex items-center gap-3">
@@ -182,9 +316,9 @@ export const Timeline = () => {
         </div>
 
         {/* Timeline Content */}
-        <div className="flex-1 overflow-x-auto overflow-y-hidden" ref={timelineRef}>
-          <div className="relative min-w-full h-full" style={{ width: `${timelineDuration * 20}px` }}>
-            <div className="h-8 bg-studio-panel border-b border-border relative">
+        <div className="flex-1 overflow-x-auto overflow-y-hidden" ref={timelineRef} onMouseDown={onScrubStart}>
+          <div ref={contentRef} className="relative min-w-full h-full" style={{ width: `${timelineDuration * 20}px` }}>
+            <div className="h-8 bg-studio-panel border-b border-border relative" onMouseMove={onRulerMove} onMouseLeave={onRulerLeave}>
               {Array.from({ length: Math.ceil(timelineDuration) + 1 }).map((_, i) => (
                 <div key={`grid-${i}`} className="absolute top-0 bottom-0 w-px bg-border/30" style={{ left: `${(i / timelineDuration) * 100}%` }} />
               ))}
@@ -197,6 +331,15 @@ export const Timeline = () => {
                   </div>
                 );
               })}
+              {/* Hover timecode tooltip */}
+              {hoverInfo?.visible && (
+                <div
+                  className="absolute top-0 transform -translate-y-full px-1.5 py-0.5 bg-studio-panel-alt border border-border/50 rounded shadow text-[10px] font-mono"
+                  style={{ left: `${(hoverInfo.time / timelineDuration) * 100}%` }}
+                >
+                  {formatTimecode(hoverInfo.time)}
+                </div>
+              )}
             </div>
 
             <div className="relative">
@@ -212,8 +355,15 @@ export const Timeline = () => {
               <div>{renderTracks(audioTracks, 'audio')}</div>
 
               {/* Playhead */}
-              <div className="absolute top-0 bottom-0 w-[2px] animated-gradient-bg z-20 pointer-events-none shadow-[0_0_12px_rgba(52,211,153,0.5)]" style={{ left: `${playheadPercent}%` }}>
-                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-4 h-4 animated-gradient-bg shadow-[0_0_10px_rgba(52,211,153,0.6)]" style={{ clipPath: "polygon(50% 0%, 0% 100%, 100% 100%)" }} />
+              <div className="absolute top-0 bottom-0 w-[2px] animated-gradient-bg z-20 shadow-[0_0_12px_rgba(52,211,153,0.5)]" style={{ left: `${playheadPercent}%` }}>
+                <div
+                  className="absolute top-0 left-1/2 -translate-x-1/2 w-4 h-4 animated-gradient-bg shadow-[0_0_10px_rgba(52,211,153,0.6)] cursor-pointer"
+                  style={{ clipPath: "polygon(50% 0%, 0% 100%, 100% 100%)" }}
+                  onDoubleClick={(e) => {
+                    e.stopPropagation();
+                    setPlayheadPosition(0);
+                  }}
+                />
               </div>
             </div>
           </div>

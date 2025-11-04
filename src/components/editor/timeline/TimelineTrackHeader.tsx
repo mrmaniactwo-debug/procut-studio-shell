@@ -180,11 +180,11 @@ export const TimelineTrackHeader: React.FC<TimelineTrackHeaderProps> = ({
             "w-8 h-8 hover:bg-accent/10 transition-all",
             isTargeted
               ? "bg-accent text-accent-foreground data-[state=on]:bg-accent"
-              : "data-[state=off]:opacity-60 hover:opacity-100"
+              : ""
           )}
         >
           <AnimatedIcon>
-            <Target className="w-4 h-4" />
+            <Target className="w-4 h-4 opacity-60 group-hover:opacity-100 transition-opacity" />
           </AnimatedIcon>
         </Toggle>
       </div>

@@ -5,6 +5,7 @@ import { ProgramMonitor } from "@/components/editor/ProgramMonitor";
 import { Timeline } from "@/components/editor/Timeline";
 import { InspectorPanel } from "@/components/editor/InspectorPanel";
 import { AudioMeters } from "@/components/editor/AudioMeters";
+import { EditorProvider } from "@/context/EditorContext";
 import {
   ResizablePanelGroup,
   ResizablePanel,
@@ -21,7 +22,8 @@ import { Separator } from "@/components/ui/separator";
  */
 const Index = () => {
   return (
-    <div className="h-screen w-full flex flex-col bg-studio-main overflow-hidden">
+    <EditorProvider>
+      <div className="h-screen w-full flex flex-col bg-studio-main overflow-hidden">
       {/* Top Bar - Fixed */}
       <TopBar />
       
@@ -88,7 +90,8 @@ const Index = () => {
           </ResizablePanel>
         </ResizablePanelGroup>
       </div>
-    </div>
+      </div>
+    </EditorProvider>
   );
 };
 
